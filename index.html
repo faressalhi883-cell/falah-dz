@@ -1,0 +1,794 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1b5e20">
+<meta name="color-scheme" content="light">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="فلاح DZ">
+<title>فلاح DZ — منصة الفلاحة الشاملة</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icons/icon-192.svg">
+<link rel="apple-touch-icon" href="./icons/icon-192.svg">
+<style>
+:root{
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+  --green:#1b5e20;
+  --green2:#2e7d32;
+  --light:#e8f5e9;
+  --border:#c8d6c8;
+  --text:#20301f;
+  --muted:#607d60;
+}
+*{box-sizing:border-box}
+html{color-scheme:light;-webkit-text-size-adjust:100%}
+body{
+  margin:0;
+  min-height:100%;
+  font-family:system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif;
+  background:#f2f5f0;
+  color:var(--text);
+  padding-bottom:calc(92px + var(--safe-bottom));
+  -webkit-tap-highlight-color:transparent;
+  overscroll-behavior-y:contain;
+}
+header{
+  background:linear-gradient(135deg,var(--green),var(--green2));
+  color:#fff;
+  padding:calc(14px + var(--safe-top)) 12px 12px;
+  text-align:center;
+}
+.brand{font-size:21px;font-weight:bold}
+.sub{font-size:12px;opacity:.92;margin-top:3px}
+.top-search{display:flex;gap:6px;margin-top:10px}
+.top-search input{
+  flex:1;min-width:0;margin:0;border:0;padding:10px;border-radius:10px;
+  font-size:16px;background:rgba(255,255,255,.96);color:var(--text);font-family:inherit;
+}
+.top-search button{
+  background:#fff;color:var(--green);font-weight:bold;padding:10px 12px;border-radius:10px;
+  margin:0;border:0;cursor:pointer;touch-action:manipulation;
+}
+main{padding:12px}
+.page{display:none}.page.active{display:block}
+.card{
+  background:#fff;border-radius:14px;padding:14px;margin-bottom:12px;
+  box-shadow:0 2px 8px rgba(0,0,0,.08);
+}
+h2{margin:0 0 10px;color:var(--green);font-size:19px}
+h3{margin:12px 0 8px;color:#33691e;font-size:16px}
+label{display:block;font-size:13px;margin:8px 0 4px;color:#455a45}
+input,select,textarea{
+  width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;
+  font-size:16px;background:#fbfdfb;font-family:inherit;color:var(--text);
+}
+button{
+  border:0;border-radius:10px;padding:11px 14px;font-size:15px;cursor:pointer;
+  font-family:inherit;touch-action:manipulation;
+}
+.btn{background:var(--green2);color:#fff;width:100%;margin-top:12px}
+.btn2{background:var(--light);color:var(--green);border:1px solid #a5d6a7;width:100%;margin-top:8px}
+.btn-auto{width:auto;margin-top:0}
+.danger{background:#ffebee;color:#b71c1c;border:1px solid #ef9a9a;padding:6px 10px;font-size:12px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid .btn2{margin-top:0}
+.stat{background:var(--light);border-radius:12px;padding:12px;text-align:center}
+.stat b{display:block;font-size:20px;color:var(--green)}
+.stat span{font-size:12px;color:#455a45}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+th,td{border-bottom:1px solid #e0e8e0;padding:8px;text-align:right;word-break:break-word}
+th{background:var(--light);color:var(--green)}
+.empty{text-align:center;color:#78909c;padding:14px;font-size:14px}
+nav{
+  position:fixed;bottom:0;right:0;left:0;background:#fff;display:flex;
+  overflow-x:auto;overflow-y:hidden;white-space:nowrap;
+  box-shadow:0 -2px 10px rgba(0,0,0,.12);z-index:10;
+  padding-bottom:var(--safe-bottom);
+  scrollbar-width:none;-webkit-overflow-scrolling:touch;
+}
+nav::-webkit-scrollbar{display:none}
+nav button{
+  flex:0 0 auto;min-width:76px;background:none;color:#455a45;font-size:10px;
+  padding:8px 6px;border-radius:0;line-height:1.1;
+}
+nav button.active{color:var(--green);font-weight:bold;background:var(--light)}
+nav button span{display:block;font-size:17px;margin-bottom:2px}
+footer{text-align:center;font-size:11px;color:var(--muted);padding:10px}
+.msg{padding:10px;border-radius:10px;margin-top:10px;font-size:13px;display:none}
+.ok{background:var(--light);color:var(--green);border:1px solid #a5d6a7}
+.err{background:#ffebee;color:#b71c1c;border:1px solid #ef9a9a}
+.row{display:flex;gap:8px;align-items:end}.row input{flex:1}.row .btn-auto{white-space:nowrap}
+.small{font-size:12px;color:var(--muted);margin:4px 0 8px}.muted{color:#78909c}
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.crop-card{border:1px solid #e0e8e0;border-radius:12px;padding:10px;margin-bottom:10px;background:#fbfdfb}
+.crop-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.crop-title{font-weight:bold;color:var(--green)}
+.crop-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:13px;margin-top:8px}
+.crop-grid div{background:#f2f7f2;padding:6px;border-radius:8px}
+.positive{color:var(--green);font-weight:bold}.negative{color:#b71c1c;font-weight:bold}
+.next-prayer{background:var(--light);border:1px solid #a5d6a7;border-radius:10px;padding:10px;margin:8px 0;font-size:14px;line-height:1.7}
+.highlight{background:var(--light);font-weight:bold}
+.toast{
+  position:fixed;top:calc(10px + var(--safe-top));right:12px;left:12px;z-index:30;
+  padding:10px 12px;border-radius:12px;box-shadow:0 4px 14px rgba(0,0,0,.16);
+  display:none;font-size:14px;text-align:center;background:var(--light);color:var(--green);border:1px solid #a5d6a7;
+}
+.toast.err{background:#ffebee;color:#b71c1c;border-color:#ef9a9a}
+</style>
+</head><body>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<header>
+  <div class="brand">🌾 فلاح DZ</div>
+  <div class="sub">منصة الفلاحة الشاملة — إدارة مزرعتك من الهاتف</div>
+  <form id="searchForm" class="top-search" action="https://www.google.com/search" method="get" target="_blank">
+    <input id="searchBox" name="q" placeholder="ابحث في جوجل: أسعار الأعلاف، أمراض الأغنام..." autocomplete="off" enterkeyhint="search" inputmode="search">
+    <button type="submit">بحث</button>
+  </form>
+</header>
+
+<main>
+
+<section id="home" class="page active">
+  <div class="card">
+    <h2>لوحة المزرعة</h2>
+    <div class="grid">
+      <div class="stat"><b id="stAnimals">0</b><span>حيوان مسجل</span></div>
+      <div class="stat"><b id="stFeed">0</b><span>عملية علف</span></div>
+      <div class="stat"><b id="stExpenses">0</b><span>دينار مصاريف</span></div>
+      <div class="stat"><b id="stSales">0</b><span>دينار مبيعات</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <h3>الربح التقديري</h3>
+    <p>المبيعات ناقص المصاريف: <b id="profit">0</b> دينار</p>
+  </div>
+  <div class="card">
+    <h3>إجراءات سريعة</h3>
+    <div class="grid">
+      <button class="btn2 nav-btn" data-page="animals">🐑 حيوان</button>
+      <button class="btn2 nav-btn" data-page="feed">🌾 علف</button>
+      <button class="btn2 nav-btn" data-page="expenses">💰 مصروف</button>
+      <button class="btn2 nav-btn" data-page="sales">💵 بيع</button>
+      <button class="btn2 nav-btn" data-page="weather">🌤️ طقس</button>
+      <button class="btn2 nav-btn" data-page="prayer">🕌 صلاة</button>
+      <button class="btn2 nav-btn" data-page="crops">🌱 محاصيل</button>
+      <button class="btn2 nav-btn" data-page="backup">💾 نسخ</button>
+    </div>
+  </div>
+</section>
+
+<section id="animals" class="page">
+  <div class="card">
+    <h2>🐑 الماشية والأغنام</h2>
+    <label>رقم الحيوان / الاسم</label>
+    <input id="aName" maxlength="60" placeholder="مثال: ماعز 12" inputmode="text">
+    <label>النوع</label>
+    <select id="aType">
+      <option>ماعز</option><option>خروف</option><option>بقرة</option><option>عجل</option><option>حصان</option>
+    </select>
+    <label>الجنس</label>
+    <select id="aSex"><option>أنثى</option><option>ذكر</option></select>
+    <label>تاريخ الميلاد أو الشراء</label>
+    <input id="aDate" type="date">
+    <label>الوزن التقديري كغ</label>
+    <input id="aWeight" type="number" min="0" step="0.1" placeholder="0" inputmode="decimal">
+    <label>ملاحظات</label>
+    <textarea id="aNote" rows="2" maxlength="300" placeholder="تلقيح، ولادة، مرض، تطعيم"></textarea>
+    <button class="btn" id="addAnimalBtn">حفظ الحيوان</button>
+  </div>
+  <div class="card"><h3>قائمة الحيوانات</h3><div id="animalList"></div></div>
+</section>
+
+<section id="feed" class="page">
+  <div class="card">
+    <h2>🌾 الأعلاف</h2>
+    <label>نوع العلف</label>
+    <input id="fType" maxlength="60" placeholder="شعير، ذرة، تبن، علف مركز" inputmode="text">
+    <label>الكمية كغ</label>
+    <input id="fQty" type="number" min="0" step="0.1" placeholder="0" inputmode="decimal">
+    <label>التاريخ</label>
+    <input id="fDate" type="date">
+    <label>ملاحظة</label>
+    <input id="fNote" maxlength="200" placeholder="مثال: علف صباحي للقطيع" inputmode="text">
+    <button class="btn" id="addFeedBtn">حفظ العلف</button>
+  </div>
+  <div class="card"><h3>سجل الأعلاف</h3><div id="feedList"></div></div>
+</section>
+
+<section id="expenses" class="page">
+  <div class="card">
+    <h2>💰 المصاريف</h2>
+    <label>البند</label>
+    <input id="eTitle" maxlength="60" placeholder="أدوية، علف، نقل، عمال" inputmode="text">
+    <label>المبلغ دينار</label>
+    <input id="eAmount" type="number" min="0" step="0.01" placeholder="0" inputmode="decimal">
+    <label>التاريخ</label>
+    <input id="eDate" type="date">
+    <button class="btn" id="addExpenseBtn">حفظ المصروف</button>
+  </div>
+  <div class="card"><h3>سجل المصاريف</h3><div id="expenseList"></div></div>
+</section>
+
+<section id="sales" class="page">
+  <div class="card">
+    <h2>💵 المبيعات</h2>
+    <label>ما بيع</label>
+    <input id="sTitle" maxlength="60" placeholder="خروف، حليب، محصول" inputmode="text">
+    <label>المبلغ دينار</label>
+    <input id="sAmount" type="number" min="0" step="0.01" placeholder="0" inputmode="decimal">
+    <label>التاريخ</label>
+    <input id="sDate" type="date">
+    <button class="btn" id="addSaleBtn">حفظ البيع</button>
+  </div>
+  <div class="card"><h3>سجل المبيعات</h3><div id="saleList"></div></div>
+</section>
+
+<section id="weather" class="page">
+  <div class="card">
+    <h2>🌤️ الطقس الأسبوعي</h2>
+    <p class="small muted">يعرض توقع 7 أيام. يحتاج إنترنت للتحديث، ويحفظ آخر نتيجة للعمل لاحقًا بدون إنترنت.</p>
+    <label>المدينة</label>
+    <div class="row">
+      <input id="wCity" placeholder="مثال: الجزائر، وهران، قسنطينة" inputmode="text">
+      <button id="wRefreshBtn" class="btn btn-auto">تحديث</button>
+    </div>
+    <div id="weatherMsg" class="msg"></div>
+    <div id="weatherOut"></div>
+  </div>
+</section>
+
+<section id="prayer" class="page">
+  <div class="card">
+    <h2>🕌 مواقيت الصلاة</h2>
+    <p class="small muted">يعرض التاريخ الميلادي والهجري مع مواقيت اليوم. يحتاج إنترنت للتحديث، ويحفظ آخر نتيجة.</p>
+    <label>المدينة</label>
+    <div class="row">
+      <input id="pCity" placeholder="مثال: الجزائر" inputmode="text">
+      <button id="pRefreshBtn" class="btn btn-auto">تحديث</button>
+    </div>
+    <div id="prayerMsg" class="msg"></div>
+    <div id="prayerOut"></div>
+  </div>
+</section>
+
+<section id="crops" class="page">
+  <div class="card">
+    <h2>🌱 حساب المحاصيل والموارد والتكلفة</h2>
+    <label>المحصول</label>
+    <input id="cCrop" maxlength="60" placeholder="مثال: قمح، شعير، بطاطس، طماطم" inputmode="text">
+    <label>التاريخ</label>
+    <input id="cDate" type="date">
+    <div class="grid">
+      <div><label>المساحة هكتار</label><input id="cArea" type="number" min="0" step="0.01" placeholder="0" inputmode="decimal"></div>
+      <div><label>الإنتاج المتوقع كغ/هكتار</label><input id="cYield" type="number" min="0" step="0.1" placeholder="0" inputmode="decimal"></div>
+      <div><label>سعر البيع دج/كغ</label><input id="cPrice" type="number" min="0" step="0.01" placeholder="0" inputmode="decimal"></div>
+      <div><label>بذور دج</label><input id="cSeed" type="number" min="0" step="0.01" placeholder="0" inputmode="decimal"></div>
+      <div><label>أسمدة دج</label><input id="cFert" type="number" min="0" step="0.01" placeholder="0" inputmode="decimal"></div>
+      <div><label>مبيدات دج</label><input id="cPest" type="number" min="0" step="0.01" placeholder="0" inputmode="decimal"></div>
+      <div><label>ري دج</label><input id="cIrrig" type="number" min="0" step="0.01" placeholder="0" inputmode="decimal"></div>
+      <div><label>يد عاملة دج</label><input id="cLabor" type="number" min="0" step="0.01" placeholder="0" inputmode="decimal"></div>
+      <div><label>آلات / وقود دج</label><input id="cMach" type="number" min="0" step="0.01" placeholder="0" inputmode="decimal"></div>
+      <div><label>مصاريف أخرى دج</label><input id="cOther" type="number" min="0" step="0.01" placeholder="0" inputmode="decimal"></div>
+    </div>
+    <button class="btn" id="addCropBtn">حفظ الحساب</button>
+  </div>
+  <div class="card"><h3>سجل المحاصيل</h3><div id="cropList"></div></div>
+</section>
+
+<section id="backup" class="page">
+  <div class="card">
+    <h2>💾 النسخ الاحتياطي</h2>
+    <p style="font-size:14px">احفظ نسخة من بياناتك بشكل دوري. يشمل النسخ: الحيوانات، الأعلاف، المصاريف، المبيعات، والمحاصيل.</p>
+    <button class="btn" id="exportBtn">تنزيل نسخة احتياطية JSON</button>
+    <label style="margin-top:14px">استرجاع نسخة احتياطية</label>
+    <input type="file" id="importFile" accept=".json,application/json">
+    <button class="btn2" id="importBtn">استرجاع البيانات</button>
+    <div id="backupMsg" class="msg"></div>
+    <button class="btn danger" id="clearBtn" style="margin-top:14px">حذف كل البيانات</button>
+  </div>
+</section>
+
+</main>
+
+<nav>
+  <button class="nav-btn active" data-page="home"><span>🏠</span>الرئيسية</button>
+  <button class="nav-btn" data-page="animals"><span>🐑</span>ماشية</button>
+  <button class="nav-btn" data-page="feed"><span>🌾</span>أعلاف</button>
+  <button class="nav-btn" data-page="expenses"><span>💰</span>مصاريف</button>
+  <button class="nav-btn" data-page="sales"><span>💵</span>مبيعات</button>
+  <button class="nav-btn" data-page="weather"><span>🌤️</span>طقس</button>
+  <button class="nav-btn" data-page="prayer"><span>🕌</span>صلاة</button>
+  <button class="nav-btn" data-page="crops"><span>🌱</span>محاصيل</button>
+  <button class="nav-btn" data-page="backup"><span>💾</span>نسخ</button>
+</nav>
+
+<footer>فلاح DZ © — البيانات الزراعية محلية — الطقس والصلاة والبحث يحتاجان اتصالًا</footer><script>
+const KEY='falahDZ';
+const EXT_KEY='falahDZ_ext';
+const DAY_MS=86400000;
+const $=id=>document.getElementById(id);
+
+function emptyData(){return {animals:[],feed:[],expenses:[],sales:[],crops:[]};}
+function safeArray(v){return Array.isArray(v)?v.filter(x=>x&&typeof x==='object'):[];}
+function safeText(v,max=200){return String(v==null?'':v).replace(/[<>]/g,'').trim().slice(0,max);}
+function safeNumber(v){const n=Number(v);return isFinite(n)&&n>=0?n:0;}
+function safeDate(v){const s=String(v||'').slice(0,10);return /^\d{4}-\d{2}-\d{2}$/.test(s)?s:'';}
+
+function cleanRecord(r,fields){
+  const out={};
+  fields.forEach(f=>{
+    if(f.type==='number') out[f.key]=safeNumber(r[f.key]);
+    else if(f.type==='date') out[f.key]=safeDate(r[f.key]);
+    else out[f.key]=safeText(r[f.key],f.max||200);
+  });
+  return out;
+}
+
+function normalizeData(raw){
+  const d=emptyData();
+  if(!raw||typeof raw!=='object')return d;
+  d.animals=safeArray(raw.animals).map(r=>cleanRecord(r,[
+    {key:'name',max:60},{key:'type',max:30},{key:'sex',max:10},
+    {key:'date',type:'date'},{key:'weight',type:'number'},{key:'note',max:300}
+  ]));
+  d.feed=safeArray(raw.feed).map(r=>cleanRecord(r,[
+    {key:'type',max:60},{key:'qty',type:'number'},{key:'date',type:'date'},{key:'note',max:200}
+  ]));
+  d.expenses=safeArray(raw.expenses).map(r=>cleanRecord(r,[
+    {key:'title',max:60},{key:'amount',type:'number'},{key:'date',type:'date'}
+  ]));
+  d.sales=safeArray(raw.sales).map(r=>cleanRecord(r,[
+    {key:'title',max:60},{key:'amount',type:'number'},{key:'date',type:'date'}
+  ]));
+  d.crops=safeArray(raw.crops).map(r=>cleanRecord(r,[
+    {key:'crop',max:60},{key:'date',type:'date'},
+    {key:'area',type:'number'},{key:'yieldKgHa',type:'number'},{key:'priceKg',type:'number'},
+    {key:'seed',type:'number'},{key:'fert',type:'number'},{key:'pest',type:'number'},
+    {key:'irrig',type:'number'},{key:'labor',type:'number'},{key:'mach',type:'number'},{key:'other',type:'number'}
+  ]));
+  return d;
+}
+
+function loadData(){
+  let raw=null;
+  try{raw=JSON.parse(localStorage.getItem(KEY)||'null');}catch(e){raw=null;}
+  return normalizeData(raw);
+}
+
+function loadExt(){
+  let e={};
+  try{e=JSON.parse(localStorage.getItem(EXT_KEY)||'{}');}catch(err){e={};}
+  if(!e||typeof e!=='object'||Array.isArray(e))e={};
+  if(!e.city||typeof e.city!=='string')e.city='الجزائر';
+  if(e.weather&&typeof e.weather!=='object')e.weather=null;
+  if(e.prayer&&typeof e.prayer!=='object')e.prayer=null;
+  return e;
+}
+
+let data=loadData();
+let ext=loadExt();
+let activePage='home';
+let lastAutoDate=today();
+
+function saveExt(){try{localStorage.setItem(EXT_KEY,JSON.stringify(ext));}catch(e){}}
+function toast(msg,type){
+  const el=$('toast'); if(!el)return;
+  el.textContent=msg;
+  el.className='toast '+(type||'ok');
+  el.style.display='block';
+  clearTimeout(toast._t);
+  toast._t=setTimeout(()=>{el.style.display='none';},3500);
+}
+function save(){
+  try{localStorage.setItem(KEY,JSON.stringify(data));}
+  catch(e){toast('تعذر الحفظ: قد تكون مساحة التخزين ممتلئة.','err');}
+  render();
+}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function fmtNum(v,d=0){
+  v=Number(v); if(!isFinite(v))v=0;
+  const opts={minimumFractionDigits:0,maximumFractionDigits:d};
+  try{return new Intl.NumberFormat('ar-DZ',opts).format(v);}
+  catch(e){
+    try{return new Intl.NumberFormat('ar',opts).format(v);}
+    catch(e2){const p=Math.pow(10,d);return String(Math.round(v*p)/p);}
+  }
+}
+function fmtVal(v,d=0){if(v===null||v===undefined||v==='')return '—';return fmtNum(v,d);}
+function unitVal(v,unit,d=0){if(v===null||v===undefined||v==='')return '—';return fmtNum(v,d)+unit;}
+function money(v){return fmtNum(v,0);}
+function today(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function fmtDate(v){return safeDate(v)||'—';}
+function isSameDay(ts){const a=new Date(ts);if(isNaN(a.getTime()))return false;const b=new Date();return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate();}
+function localeDateTime(ts){try{return new Date(ts).toLocaleString('ar-DZ');}catch(e){try{return new Date(ts).toLocaleString('ar');}catch(e2){return new Date(ts).toString();}}}
+function localeWeekday(dateStr){try{return new Date(dateStr+'T12:00:00').toLocaleDateString('ar-DZ',{weekday:'long'});}catch(e){try{return new Date(dateStr+'T12:00:00').toLocaleDateString('ar',{weekday:'long'});}catch(e2){return dateStr||'—';}}}
+
+const msgTimers={};
+function showMsg(id,text,type){
+  const el=$(id); if(!el)return;
+  clearTimeout(msgTimers[id]);
+  el.textContent=text;
+  el.className='msg '+(type||'ok');
+  el.style.display='block';
+  msgTimers[id]=setTimeout(()=>{el.style.display='none';},5000);
+}function pageExists(p){return !!document.getElementById(p);}
+function currentHashPage(){const p=(location.hash||'').replace(/^#\/?/,'');return pageExists(p)?p:'home';}
+function syncDateInput(id){const el=$(id);if(!el)return;const t=today();if(!el.value||el.value===lastAutoDate)el.value=t;}
+function syncDateInputsForPage(page){const map={animals:['aDate'],feed:['fDate'],expenses:['eDate'],sales:['sDate'],crops:['cDate']};(map[page]||[]).forEach(syncDateInput);}
+function syncAllDateInputs(){const t=today();['aDate','fDate','eDate','sDate','cDate'].forEach(id=>{const el=$(id);if(!el)return;if(!el.value||el.value===lastAutoDate)el.value=t;});lastAutoDate=t;}
+
+function activatePage(page,updateHash){
+  if(!pageExists(page))page='home';
+  activePage=page;
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById(page).classList.add('active');
+  document.querySelectorAll('nav .nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
+  if(updateHash){const target='#'+page;if(location.hash!==target)location.hash=target;}
+  window.scrollTo({top:0,behavior:'smooth'});
+  syncDateInputsForPage(page);
+  maybeRefreshExternal(page);
+}
+function showPage(page){activatePage(page,true);}
+window.addEventListener('hashchange',()=>{const p=currentHashPage();if(p!==activePage)activatePage(p,false);});
+document.querySelectorAll('.nav-btn').forEach(btn=>btn.addEventListener('click',()=>showPage(btn.dataset.page)));
+
+$('searchForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  const q=$('searchBox').value.trim();
+  if(!q)return toast('اكتب كلمة البحث','err');
+  const url='https://www.google.com/search?q='+encodeURIComponent(q);
+  const win=window.open(url,'_blank','noopener,noreferrer');
+  if(!win){const a=document.createElement('a');a.href=url;a.target='_blank';a.rel='noopener noreferrer';document.body.appendChild(a);a.click();a.remove();}
+});
+
+function addAnimal(){
+  const name=safeText($('aName').value,60);
+  if(!name)return toast('اكتب رقم أو اسم الحيوان','err');
+  data.animals.unshift({name:name,type:safeText($('aType').value,30),sex:safeText($('aSex').value,10),date:safeDate($('aDate').value)||today(),weight:safeNumber($('aWeight').value),note:safeText($('aNote').value,300)});
+  $('aName').value='';$('aWeight').value='';$('aNote').value='';
+  save();toast('تم حفظ الحيوان.','ok');
+}
+function delAnimal(i){if(!confirm('حذف هذا الحيوان؟'))return;data.animals.splice(Number(i),1);save();toast('تم حذف الحيوان.','ok');}
+
+function addFeed(){
+  const type=safeText($('fType').value,60);
+  if(!type)return toast('اكتب نوع العلف','err');
+  data.feed.unshift({type:type,qty:safeNumber($('fQty').value),date:safeDate($('fDate').value)||today(),note:safeText($('fNote').value,200)});
+  $('fType').value='';$('fQty').value='';$('fNote').value='';
+  save();toast('تم حفظ العلف.','ok');
+}
+function delFeed(i){if(!confirm('حذف هذا السجل؟'))return;data.feed.splice(Number(i),1);save();toast('تم حذف السجل.','ok');}
+
+function addExpense(){
+  const title=safeText($('eTitle').value,60);
+  const amount=safeNumber($('eAmount').value);
+  if(!title)return toast('اكتب بند المصروف','err');
+  if(amount<=0)return toast('اكتب مبلغًا أكبر من صفر','err');
+  data.expenses.unshift({title:title,amount:amount,date:safeDate($('eDate').value)||today()});
+  $('eTitle').value='';$('eAmount').value='';
+  save();toast('تم حفظ المصروف.','ok');
+}
+function delExpense(i){if(!confirm('حذف المصروف؟'))return;data.expenses.splice(Number(i),1);save();toast('تم حذف المصروف.','ok');}
+
+function addSale(){
+  const title=safeText($('sTitle').value,60);
+  const amount=safeNumber($('sAmount').value);
+  if(!title)return toast('اكتب ما بيعته','err');
+  if(amount<=0)return toast('اكتب مبلغًا أكبر من صفر','err');
+  data.sales.unshift({title:title,amount:amount,date:safeDate($('sDate').value)||today()});
+  $('sTitle').value='';$('sAmount').value='';
+  save();toast('تم حفظ البيع.','ok');
+}
+function delSale(i){if(!confirm('حذف البيع؟'))return;data.sales.splice(Number(i),1);save();toast('تم حذف البيع.','ok');}
+
+function addCrop(){
+  const crop=safeText($('cCrop').value,60);
+  if(!crop)return toast('اكتب اسم المحصول','err');
+  data.crops.unshift({
+    crop:crop,date:safeDate($('cDate').value)||today(),area:safeNumber($('cArea').value),yieldKgHa:safeNumber($('cYield').value),priceKg:safeNumber($('cPrice').value),
+    seed:safeNumber($('cSeed').value),fert:safeNumber($('cFert').value),pest:safeNumber($('cPest').value),irrig:safeNumber($('cIrrig').value),
+    labor:safeNumber($('cLabor').value),mach:safeNumber($('cMach').value),other:safeNumber($('cOther').value)
+  });
+  ['cCrop','cArea','cYield','cPrice','cSeed','cFert','cPest','cIrrig','cLabor','cMach','cOther'].forEach(id=>$(id).value='');
+  $('cDate').value=today();
+  save();toast('تم حفظ حساب المحصول.','ok');
+}
+function delCrop(i){if(!confirm('حذف حساب المحصول؟'))return;data.crops.splice(Number(i),1);save();toast('تم حذف الحساب.','ok');}
+
+function calcCrop(r){
+  const totalCost=safeNumber(r.seed)+safeNumber(r.fert)+safeNumber(r.pest)+safeNumber(r.irrig)+safeNumber(r.labor)+safeNumber(r.mach)+safeNumber(r.other);
+  const totalYield=safeNumber(r.area)*safeNumber(r.yieldKgHa);
+  const revenue=totalYield*safeNumber(r.priceKg);
+  const profit=revenue-totalCost;
+  const costPerKg=totalYield>0?totalCost/totalYield:0;
+  return {totalCost,totalYield,revenue,profit,costPerKg};
+}
+
+function buildTable(rows,cols,delFn){
+  if(!rows.length)return '<div class="empty">لا توجد بيانات بعد</div>';
+  let h='<div class="table-wrap"><table><tr>'+cols.map(c=>'<th>'+esc(c[0])+'</th>').join('')+'<th>حذف</th></tr>';
+  rows.forEach((r,i)=>{h+='<tr>'+cols.map(c=>'<td>'+esc(c[1](r))+'</td>').join('')+'<td><button class="danger" data-del="'+delFn+'" data-i="'+i+'">حذف</button></td></tr>';});
+  return h+'</table></div>';
+}
+
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-del]');
+  if(!b)return;
+  const fn=b.dataset.del,i=Number(b.dataset.i);
+  if(fn==='animal')delAnimal(i);
+  else if(fn==='feed')delFeed(i);
+  else if(fn==='expense')delExpense(i);
+  else if(fn==='sale')delSale(i);
+  else if(fn==='crop')delCrop(i);
+});function render(){
+  $('animalList').innerHTML=buildTable(data.animals,[['الحيوان',r=>r.name],['النوع',r=>r.type],['الجنس',r=>r.sex],['الوزن',r=>r.weight?r.weight+' كغ':'—'],['التاريخ',r=>fmtDate(r.date)],['ملاحظة',r=>r.note]],'animal');
+  $('feedList').innerHTML=buildTable(data.feed,[['العلف',r=>r.type],['الكمية',r=>r.qty?r.qty+' كغ':'—'],['التاريخ',r=>fmtDate(r.date)],['ملاحظة',r=>r.note]],'feed');
+  $('expenseList').innerHTML=buildTable(data.expenses,[['البند',r=>r.title],['المبلغ',r=>money(r.amount)+' دج'],['التاريخ',r=>fmtDate(r.date)]],'expense');
+  $('saleList').innerHTML=buildTable(data.sales,[['البيع',r=>r.title],['المبلغ',r=>money(r.amount)+' دج'],['التاريخ',r=>fmtDate(r.date)]],'sale');
+  renderCrops();
+  const ex=data.expenses.reduce((s,r)=>s+safeNumber(r.amount),0);
+  const sa=data.sales.reduce((s,r)=>s+safeNumber(r.amount),0);
+  $('stAnimals').textContent=data.animals.length;
+  $('stFeed').textContent=data.feed.length;
+  $('stExpenses').textContent=money(ex);
+  $('stSales').textContent=money(sa);
+  $('profit').textContent=money(sa-ex);
+}
+
+function renderCrops(){
+  const el=$('cropList');
+  if(!el)return;
+  if(!data.crops.length){el.innerHTML='<div class="empty">لا توجد حسابات محاصيل بعد</div>';return;}
+  el.innerHTML=data.crops.map((r,i)=>{
+    const c=calcCrop(r);
+    const profitClass=c.profit>=0?'positive':'negative';
+    return `
+      <div class="crop-card">
+        <div class="crop-head">
+          <div class="crop-title">${esc(r.crop||'محصول')}</div>
+          <button class="danger" data-del="crop" data-i="${i}">حذف</button>
+        </div>
+        <div class="small">${esc(fmtDate(r.date))}</div>
+        <div class="crop-grid">
+          <div>المساحة: ${fmtNum(r.area,2)} هـ</div>
+          <div>الإنتاج: ${fmtNum(c.totalYield,1)} كغ</div>
+          <div>السعر: ${fmtNum(r.priceKg,2)} دج/كغ</div>
+          <div>التكلفة: ${money(c.totalCost)} دج</div>
+          <div>المداخيل: ${money(c.revenue)} دج</div>
+          <div class="${profitClass}">الربح: ${money(c.profit)} دج</div>
+          <div>تكلفة الكغ: ${fmtNum(c.costPerKg,2)} دج</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function fetchJSON(url,ms=12000){
+  if(typeof fetch!=='function')throw new Error('fetch');
+  let timer;const opts={};
+  if(typeof AbortController!=='undefined'){const ctrl=new AbortController();opts.signal=ctrl.signal;timer=setTimeout(()=>ctrl.abort(),ms);}
+  try{const res=await fetch(url,opts);if(timer)clearTimeout(timer);if(!res.ok)throw new Error('http');return await res.json();}
+  catch(e){if(timer)clearTimeout(timer);throw e;}
+}
+
+async function geocodeCity(city){
+  city=String(city||'').trim();
+  if(!city)throw new Error('city');
+  const base='https://geocoding-api.open-meteo.com/v1/search?count=1&format=json&name='+encodeURIComponent(city);
+  let d=null;
+  try{d=await fetchJSON(base+'&language=ar');}catch(e){d=null;}
+  if(!d||!Array.isArray(d.results)||!d.results.length)d=await fetchJSON(base+'&language=en');
+  if(!d||!Array.isArray(d.results)||!d.results.length)throw new Error('city');
+  return d.results[0];
+}
+
+function weatherInfo(c){
+  if(c===null||c===undefined||c==='')return['—','غير متاح'];
+  c=Number(c);if(!isFinite(c))return['—','غير متاح'];
+  if(c===0)return['☀️','صحو'];
+  if(c<=3)return['⛅','غائم جزئيًا'];
+  if(c===45||c===48)return['🌫️','ضباب'];
+  if(c<=57)return['🌦️','رذاذ'];
+  if(c<=67)return['🌧️','مطر'];
+  if(c<=77)return['❄️','ثلج'];
+  if(c<=82)return['🌧️','زخات مطر'];
+  if(c<=86)return['❄️','زخات ثلج'];
+  if(c<=95)return['⛈️','عواصف رعدية'];
+  return['⛈️','برد / عاصفة'];
+}
+
+async function refreshWeather(city){
+  city=String(city||'').trim()||ext.city||'الجزائر';
+  if($('wCity'))$('wCity').value=city;
+  showMsg('weatherMsg','جاري جلب الطقس...','ok');
+  try{
+    const loc=await geocodeCity(city);
+    if(!isFinite(loc.latitude)||!isFinite(loc.longitude))throw new Error('city');
+    const url='https://api.open-meteo.com/v1/forecast?latitude='+encodeURIComponent(loc.latitude)+'&longitude='+encodeURIComponent(loc.longitude)+'&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max&timezone=auto&forecast_days=7';
+    const d=await fetchJSON(url);
+    if(!d||!d.daily||!Array.isArray(d.daily.time)||!d.daily.time.length)throw new Error('weather');
+    d.city=city;
+    d.location={name:loc.name,admin1:loc.admin1,country:loc.country,timezone:loc.timezone};
+    d.updated=Date.now();
+    ext.city=city;ext.weather=d;saveExt();renderWeather();showMsg('weatherMsg','تم تحديث الطقس.','ok');
+  }catch(e){renderWeather();showMsg('weatherMsg','تعذر جلب الطقس. تحقق من الإنترنت. يتم عرض آخر نسخة محفوظة إن وجدت.','err');}
+}
+
+function renderWeather(){
+  const out=$('weatherOut');if(!out)return;
+  const w=ext.weather;
+  if(!w||!w.daily||!Array.isArray(w.daily.time)||!w.daily.time.length){out.innerHTML='<div class="empty">لا توجد بيانات طقس محفوظة بعد. اضغط تحديث.</div>';return;}
+  const loc=w.location||{};const d=w.daily;
+  let html='<div class="small">📍 '+esc(loc.name||w.city||ext.city);
+  if(loc.admin1)html+='، '+esc(loc.admin1);
+  if(loc.country)html+='، '+esc(loc.country);
+  html+=' — آخر تحديث: '+esc(localeDateTime(w.updated||Date.now()))+'</div>';
+  html+='<div class="table-wrap"><table><tr><th>اليوم</th><th>الحالة</th><th>عظمى</th><th>صغرى</th><th>أمطار</th><th>رياح</th></tr>';
+  for(let i=0;i<d.time.length;i++){
+    const info=weatherInfo(d.weather_code&&d.weather_code[i]);
+    const max=d.temperature_2m_max&&d.temperature_2m_max[i];
+    const min=d.temperature_2m_min&&d.temperature_2m_min[i];
+    const rain=d.precipitation_sum&&d.precipitation_sum[i];
+    const wind=d.wind_speed_10m_max&&d.wind_speed_10m_max[i];
+    html+='<tr><td>'+esc(localeWeekday(d.time[i]))+'</td><td>'+info[0]+' '+esc(info[1])+'</td><td>'+unitVal(max,'°',1)+'</td><td>'+unitVal(min,'°',1)+'</td><td>'+unitVal(rain,' مم',1)+'</td><td>'+unitVal(wind,' كم/س',0)+'</td></tr>';
+  }
+  html+='</table></div>';out.innerHTML=html;
+}
+
+function parseTimeMinutes(s){
+  const str=String(s||'');const m=str.match(/(\d{1,2}):(\d{2})/);if(!m)return 0;
+  let h=Number(m[1]),min=Number(m[2]);if(!isFinite(h))h=0;if(!isFinite(min))min=0;
+  h=h%24;min=min%60;
+  const ap=str.match(/\b(AM|PM|am|pm)\b/);
+  if(ap){const x=ap[1].toUpperCase();if(x==='PM'&&h<12)h+=12;if(x==='AM'&&h===12)h=0;}
+  return h*60+min;
+}
+
+function currentTimeMinutes(tz){
+  try{
+    if(tz&&typeof tz==='string'){
+      const parts=new Intl.DateTimeFormat('en-US',{timeZone:tz,hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date());
+      const hp=parts.find(p=>p.type==='hour'),mp=parts.find(p=>p.type==='minute');
+      const h=hp?Number(hp.value):NaN,m=mp?Number(mp.value):NaN;
+      if(isFinite(h)&&isFinite(m))return (h%24)*60+(m%60);
+    }
+  }catch(e){}
+  const d=new Date();return d.getHours()*60+d.getMinutes();
+}
+
+function getNextPrayer(t,tz){
+  const cur=currentTimeMinutes(tz);
+  const list=[['Fajr','الفجر'],['Sunrise','الشروق'],['Dhuhr','الظهر'],['Asr','العصر'],['Maghrib','المغرب'],['Isha','العشاء']];
+  for(const item of list){const key=item[0],name=item[1],mins=parseTimeMinutes(t[key]);if(mins>cur)return {key:key,name:name,time:t[key]||'—',tomorrow:false};}
+  return {key:'Fajr',name:'الفجر',time:t.Fajr||'—',tomorrow:true};
+}
+
+async function refreshPrayer(city){
+  city=String(city||'').trim()||ext.city||'الجزائر';
+  if($('pCity'))$('pCity').value=city;
+  showMsg('prayerMsg','جاري جلب المواقيت...','ok');
+  try{
+    const loc=await geocodeCity(city);
+    if(!isFinite(loc.latitude)||!isFinite(loc.longitude))throw new Error('city');
+    let pd=null;
+    const attempts=[{m:19,tz:true},{m:19,tz:false},{m:2,tz:true},{m:2,tz:false}];
+    for(const at of attempts){
+      if(at.tz&&!loc.timezone)continue;
+      let url='https://api.aladhan.com/v1/timings?latitude='+encodeURIComponent(loc.latitude)+'&longitude='+encodeURIComponent(loc.longitude)+'&method='+at.m;
+      if(at.tz&&loc.timezone)url+='&timeZone='+encodeURIComponent(loc.timezone);
+      try{const j=await fetchJSON(url);if(j&&j.data&&j.data.timings&&j.data.date){pd=j.data;break;}}catch(e){}
+    }
+    if(!pd)throw new Error('prayer');
+    ext.city=city;
+    ext.prayer={city:city,data:pd,location:{name:loc.name,admin1:loc.admin1,country:loc.country,timezone:loc.timezone},updated:Date.now()};
+    saveExt();renderPrayer();showMsg('prayerMsg','تم تحديث مواقيت الصلاة.','ok');
+  }catch(e){renderPrayer();showMsg('prayerMsg','تعذر جلب المواقيت. تحقق من الإنترنت. يتم عرض آخر نسخة محفوظة إن وجدت.','err');}
+}
+
+function renderPrayer(){
+  const out=$('prayerOut');if(!out)return;
+  const p=ext.prayer;
+  if(!p||!p.data||!p.data.timings||!p.data.date){out.innerHTML='<div class="empty">لا توجد بيانات صلاة محفوظة بعد. اضغط تحديث.</div>';return;}
+  const d=p.data,t=d.timings||{},loc=p.location||{},gd=d.date.gregorian||{},hd=d.date.hijri||{},meta=d.meta||{};
+  const tz=(loc.timezone)||(typeof meta.timezone==='string'?meta.timezone:'');
+  const next=getNextPrayer(t,tz);
+  let html='<div class="small">📍 '+esc(loc.name||p.city||ext.city);
+  if(loc.admin1)html+='، '+esc(loc.admin1);
+  if(loc.country)html+='، '+esc(loc.country);
+  html+=' — آخر تحديث: '+esc(localeDateTime(p.updated||Date.now()))+'</div>';
+  html+='<div class="next-prayer">ميلادي: <b>'+esc(gd.readable||gd.date||'—')+'</b><br>هجري: <b>'+esc(hd.date||'—')+' '+esc((hd.weekday&&hd.weekday.ar)||'')+'</b><br>الصلاة القادمة: <b>'+esc(next.name)+'</b> '+esc(next.time)+(next.tomorrow?' (غدًا)':'')+'</div>';
+  html+='<div class="table-wrap"><table><tr><th>الوقت</th><th>الصلاة</th></tr>';
+  [['Fajr','الفجر'],['Sunrise','الشروق'],['Dhuhr','الظهر'],['Asr','العصر'],['Maghrib','المغرب'],['Isha','العشاء']].forEach(item=>{
+    const k=item[0],ar=item[1],hl=(k===next.key&&!next.tomorrow)?' class="highlight"':'';
+    html+='<tr'+hl+'><td>'+esc(t[k]||'—')+'</td><td>'+ar+'</td></tr>';
+  });
+  html+='</table></div>';out.innerHTML=html;
+}
+
+function maybeRefreshExternal(page){
+  if(page==='weather'){
+    const input=$('wCity'),city=(input&&input.value.trim())||ext.city||'الجزائر';
+    if(!ext.weather||ext.weather.city!==city||!ext.weather.updated||Date.now()-ext.weather.updated>DAY_MS)refreshWeather(city);
+    else renderWeather();
+  }
+  if(page==='prayer'){
+    const input=$('pCity'),city=(input&&input.value.trim())||ext.city||'الجزائر';
+    if(!ext.prayer||ext.prayer.city!==city||!ext.prayer.updated||!isSameDay(ext.prayer.updated))refreshPrayer(city);
+    else renderPrayer();
+  }
+}function validBackup(d){
+  if(!d||typeof d!=='object')return false;
+  const core=['animals','feed','expenses','sales'];
+  if(!core.every(k=>Array.isArray(d[k])))return false;
+  if(Object.prototype.hasOwnProperty.call(d,'crops')&&!Array.isArray(d.crops))return false;
+  return true;
+}
+
+$('exportBtn').addEventListener('click',()=>{
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Falah-DZ-backup.json';
+  document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(a.href);
+  showMsg('backupMsg','تم تنزيل النسخة الاحتياطية بنجاح.','ok');toast('تم تنزيل النسخة الاحتياطية.','ok');
+});
+
+$('importBtn').addEventListener('click',()=>{
+  const f=$('importFile').files[0];
+  if(!f)return showMsg('backupMsg','اختر ملف نسخة احتياطية أولًا.','err');
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const parsed=JSON.parse(r.result);
+      if(!validBackup(parsed))throw new Error('bad');
+      if(!confirm('سيتم استبدال البيانات الحالية ببيانات النسخة الاحتياطية. هل تريد المتابعة؟'))return;
+      data=normalizeData(parsed);save();
+      showMsg('backupMsg','تم استرجاع البيانات بنجاح.','ok');toast('تم استرجاع البيانات.','ok');
+    }catch(e){showMsg('backupMsg','ملف النسخة الاحتياطية غير صالح أو تالف.','err');toast('ملف النسخة غير صالح.','err');}
+  };
+  r.onerror=()=>{showMsg('backupMsg','تعذر قراءة الملف.','err');toast('تعذر قراءة الملف.','err');};
+  r.readAsText(f);
+});
+
+$('clearBtn').addEventListener('click',()=>{
+  if(!confirm('سيتم حذف كل البيانات نهائيًا. هل أنت متأكد؟'))return;
+  if(!confirm('تأكيد أخير: احفظ نسخة احتياطية قبل الحذف. هل تريد المتابعة؟'))return;
+  data=emptyData();ext.weather=null;ext.prayer=null;saveExt();save();renderWeather();renderPrayer();toast('تم حذف كل البيانات.','ok');
+});
+
+$('addAnimalBtn').addEventListener('click',addAnimal);
+$('addFeedBtn').addEventListener('click',addFeed);
+$('addExpenseBtn').addEventListener('click',addExpense);
+$('addSaleBtn').addEventListener('click',addSale);
+$('addCropBtn').addEventListener('click',addCrop);
+$('wRefreshBtn').addEventListener('click',()=>refreshWeather($('wCity').value));
+$('pRefreshBtn').addEventListener('click',()=>refreshPrayer($('pCity').value));
+
+['wCity','pCity'].forEach(id=>{
+  const el=$(id);if(!el)return;
+  el.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();if(id==='wCity')refreshWeather(el.value);else refreshPrayer(el.value);}});
+});
+
+window.addEventListener('online',()=>{toast('عاد الاتصال بالإنترنت.','ok');if(activePage==='weather'||activePage==='prayer')maybeRefreshExternal(activePage);});
+window.addEventListener('offline',()=>toast('لا يوجد اتصال. سيتم استخدام آخر بيانات محفوظة.','err'));
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){syncAllDateInputs();if(activePage==='weather'||activePage==='prayer')maybeRefreshExternal(activePage);}});
+window.addEventListener('pageshow',e=>{if(e.persisted){syncAllDateInputs();if(activePage==='weather'||activePage==='prayer')maybeRefreshExternal(activePage);}});
+setInterval(()=>{if(activePage==='prayer'&&ext.prayer)renderPrayer();},60000);
+
+try{if(!location.hash)history.replaceState(null,'','#home');}catch(e){}
+syncAllDateInputs();
+if($('wCity'))$('wCity').value=ext.city;
+if($('pCity'))$('pCity').value=ext.city;
+renderWeather();renderPrayer();render();activatePage(currentHashPage(),false);
+
+if('serviceWorker' in navigator && location.protocol!=='file:'){
+  window.addEventListener('load',()=>{navigator.serviceWorker.register('./sw.js').catch(()=>{});});
+  navigator.serviceWorker.addEventListener('message',event=>{if(event.data&&event.data.type==='SW_UPDATE')toast('تم تحديث نسخة التطبيق. أغلقه وافتحه مجددًا.','ok');});
+}
+</script>
+</body>
+</html>
