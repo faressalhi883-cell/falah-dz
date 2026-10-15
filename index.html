@@ -863,5 +863,157 @@ body.dark-mode .small,body.dark-mode .muted{color:#a0a0b0!important}
   });
 })();
 </script>
+  <style>
+#aPhotoPreview img{width:80px;height:80px;border-radius:12px;object-fit:cover;border:2px solid #ce93d8;box-shadow:0 2px 6px rgba(0,0,0,.1)}
+#aPhotoClear{background:#ffebee;color:#b71c1c;border:1px solid #ef9a9a;padding:6px 10px;font-size:12px;border-radius:8px;margin-top:8px;cursor:pointer;font-family:inherit}
+body.dark-mode #aPhotoPreview img{border-color:#6a1b9a}
+.animal-photo-thumb{width:34px;height:34px;border-radius:50%;object-fit:cover;margin-left:6px;vertical-align:middle;display:inline-block;border:2px solid #ce93d8}
+body.dark-mode .animal-photo-thumb{border-color:#6a1b9a}
+#aPhoto{padding:8px;font-size:14px}
+</style>
+
+<script>
+(function(){
+  var PHOTOS_KEY='falahDZ_photos';
+  var photos={};
+  try{photos=JSON.parse(localStorage.getItem(PHOTOS_KEY)||'{}')||{};}catch(e){photos={};}
+  var currentPhoto=null;
+
+  function savePhotos(){
+    try{localStorage.setItem(PHOTOS_KEY,JSON.stringify(photos));}
+    catch(e){alert('الذاكرة ممتلئة! احذف بعض الصور أو استرجع نسخة احتياطية.');}
+  }
+  function photoKey(a){return (a.name||'')+'|'+(a.date||'')+'|'+(a.type||'');}
+
+  function compressImage(file,cb){
+    var reader=new FileReader();
+    reader.onload=function(ev){
+      var img=new Image();
+      img.onload=function(){
+        try{
+          var max=300;
+          var ratio=Math.min(max/img.width,max/img.height,1);
+          var c=document.createElement('canvas');
+          c.width=Math.round(img.width*ratio);
+          c.height=Math.round(img.height*ratio);
+          c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+          cb(c.toDataURL('image/jpeg',0.65));
+        }catch(err){cb(null);}
+      };
+      img.onerror=function(){cb(null);};
+      img.src=ev.target.result;
+    };
+    reader.onerror=function(){cb(null);};
+    reader.readAsDataURL(file);
+  }
+
+  function injectPhotoInput(){
+    var btn=document.getElementById('addAnimalBtn');
+    if(!btn||document.getElementById('aPhoto'))return;
+    var wrap=document.createElement('div');
+    wrap.innerHTML='<label>صورة الحيوان (اختياري)</label><input type="file" id="aPhoto" accept="image/*"><div id="aPhotoPreview" style="margin-top:8px"></div>';
+    btn.parentNode.insertBefore(wrap,btn);
+    document.getElementById('aPhoto').addEventListener('change',function(e){
+      var f=e.target.files&&e.target.files[0];
+      if(!f)return;
+      compressImage(f,function(dataUrl){
+        if(!dataUrl){alert('تعذر معالجة الصورة');return;}
+        currentPhoto=dataUrl;
+        var kb=(dataUrl.length/1024).toFixed(0);
+        var prev=document.getElementById('aPhotoPreview');
+        prev.innerHTML='<img src="'+dataUrl+'" alt="معاينة"><div style="font-size:11px;color:#888;margin-top:4px">'+kb+' ك.ب</div><button type="button" id="aPhotoClear">إزالة الصورة</button>';
+        document.getElementById('aPhotoClear').addEventListener('click',function(){
+          currentPhoto=null;
+          document.getElementById('aPhoto').value='';
+          prev.innerHTML='';
+        });
+      });
+    });
+  }
+
+  function addThumbnails(){
+    try{
+      var list=document.getElementById('animalList');
+      if(!list||typeof data==='undefined')return;
+      var rows=list.querySelectorAll('tr');
+      var idx=0;
+      for(var r=0;r<rows.length;r++){
+        var tr=rows[r];
+        if(tr.querySelector('th'))continue;
+        var a=data.animals[idx];
+        idx++;
+        if(!a)continue;
+        var ph=photos[photoKey(a)];
+        if(!ph)continue;
+        var cell=tr.querySelector('td');
+        if(!cell||cell.querySelector('img'))continue;
+        var im=document.createElement('img');
+        im.src=ph;
+        im.className='animal-photo-thumb';
+        cell.insertBefore(im,cell.firstChild);
+      }
+    }catch(e){}
+  }
+
+  function watchAnimalList(){
+    var el=document.getElementById('animalList');
+    if(!el)return;
+    if(typeof MutationObserver!=='undefined'){
+      new MutationObserver(addThumbnails).observe(el,{childList:true,subtree:true});
+    }
+    addThumbnails();
+  }
+
+  var pendingPhotoKey=null;
+  document.addEventListener('click',function(e){
+    var b=e.target.closest&&e.target.closest('[data-del="animal"]');
+    if(!b)return;
+    var i=Number(b.dataset.i);
+    if(typeof data!=='undefined'&&data.animals&&data.animals[i]){
+      pendingPhotoKey=photoKey(data.animals[i]);
+    }
+  },true);
+
+  document.addEventListener('click',function(e){
+    var b=e.target.closest&&e.target.closest('[data-del="animal"]');
+    if(!b)return;
+    if(pendingPhotoKey&&photos[pendingPhotoKey]){
+      delete photos[pendingPhotoKey];
+      savePhotos();
+    }
+    pendingPhotoKey=null;
+  },false);
+
+  var lastCount=0;
+  document.addEventListener('click',function(e){
+    var btn=e.target.closest&&e.target.closest('#addAnimalBtn');
+    if(!btn)return;
+    if(typeof data!=='undefined'&&data.animals.length>lastCount&&currentPhoto){
+      var a=data.animals[0];
+      photos[photoKey(a)]=currentPhoto;
+      savePhotos();
+      currentPhoto=null;
+      var pv=document.getElementById('aPhotoPreview');
+      if(pv)pv.innerHTML='';
+      var pi=document.getElementById('aPhoto');
+      if(pi)pi.value='';
+      try{if(typeof save==='function')save();}catch(e){}
+    }
+    lastCount=(typeof data!=='undefined')?data.animals.length:0;
+  },false);
+
+  function init(){
+    injectPhotoInput();
+    watchAnimalList();
+    if(typeof data!=='undefined')lastCount=data.animals.length;
+    setTimeout(addThumbnails,800);
+    setTimeout(addThumbnails,2000);
+  }
+
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded',init);
+  }else{init();}
+})();
+</script>
 </body>
 </html>
