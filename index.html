@@ -1398,5 +1398,216 @@ body.dark-mode .hbar-label{color:#e8e8f0!important}
   }
 })();
 </script>
+  <style>
+.health-type{display:inline-block;padding:3px 8px;border-radius:8px;font-size:11px;font-weight:bold;margin-left:6px}
+.health-type.ht-vac{background:#e3f2fd;color:#1565c0}
+.health-type.ht-med{background:#fff3e0;color:#e65100}
+.health-type.ht-sick{background:#ffebee;color:#c62828}
+.health-type.ht-check{background:#e8f5e9;color:#2e7d32}
+body.dark-mode .health-type.ht-vac{background:#1a3a5a;color:#64b5f6}
+body.dark-mode .health-type.ht-med{background:#5a3a1a;color:#ffb74d}
+body.dark-mode .health-type.ht-sick{background:#5a1a1a;color:#ef5350}
+body.dark-mode .health-type.ht-check{background:#1a5a1a;color:#81c784}
+.health-row{padding:10px;background:var(--light);border-radius:10px;margin-bottom:8px;border-right:4px solid #8e24aa}
+body.dark-mode .health-row{background:#2a2a3e!important}
+.health-row .h-top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
+.health-row .h-animal{font-weight:bold;color:var(--green);font-size:14px}
+.health-row .h-date{font-size:12px;color:var(--muted)}
+.health-row .h-desc{font-size:13px;color:var(--text);line-height:1.6;margin-top:4px}
+.health-row .h-med{font-size:12px;color:var(--muted);margin-top:4px}
+.health-row .h-cost{font-size:12px;color:#c62828;font-weight:bold;margin-top:4px}
+body.dark-mode .health-row .h-cost{color:#ef5350}
+#healthAnimal{font-family:inherit}
+</style>
+
+<script>
+(function(){
+  var HEALTH_TYPES = ['تطعيم','دواء','مرض','فحص بيطري'];
+
+  function getTypeClass(type){
+    if(type==='تطعيم') return 'ht-vac';
+    if(type==='دواء') return 'ht-med';
+    if(type==='مرض') return 'ht-sick';
+    return 'ht-check';
+  }
+  function getTypeIcon(type){
+    if(type==='تطعيم') return '💉';
+    if(type==='دواء') return '💊';
+    if(type==='مرض') return '🤒';
+    return '🩺';
+  }
+
+  function getHealthData(){
+    try{
+      if(!data.health) data.health = [];
+      return data.health;
+    }catch(e){return [];}
+  }
+
+  function addHealthRecord(){
+    var animal = document.getElementById('healthAnimal').value.trim();
+    var type = document.getElementById('healthType').value;
+    var date = document.getElementById('healthDate').value;
+    var desc = document.getElementById('healthDesc').value.trim();
+    var med = document.getElementById('healthMed').value.trim();
+    var cost = parseFloat(document.getElementById('healthCost').value) || 0;
+
+    if(!animal){ toast('اختر الحيوان','err'); return; }
+    if(!desc){ toast('اكتب الوصف','err'); return; }
+    if(!date){ date = today(); }
+
+    getHealthData().unshift({
+      animal: animal,
+      type: type,
+      date: date,
+      desc: desc,
+      med: med,
+      cost: cost
+    });
+    try{ save(); }catch(e){}
+    document.getElementById('healthDesc').value = '';
+    document.getElementById('healthMed').value = '';
+    document.getElementById('healthCost').value = '';
+    renderHealth();
+    toast('تم حفظ السجل الصحي','ok');
+  }
+
+  function delHealthRecord(i){
+    if(!confirm('حذف هذا السجل؟')) return;
+    getHealthData().splice(i,1);
+    try{ save(); }catch(e){}
+    renderHealth();
+    toast('تم الحذف','ok');
+  }
+
+  function refreshAnimalList(){
+    var sel = document.getElementById('healthAnimal');
+    if(!sel) return;
+    var cur = sel.value;
+    var opts = '<option value="">-- اختر الحيوان --</option>';
+    try{
+      (data.animals||[]).forEach(function(a){
+        var label = a.name + (a.type ? ' ('+a.type+')' : '');
+        opts += '<option value="'+esc(label)+'">'+esc(label)+'</option>';
+      });
+    }catch(e){}
+    sel.innerHTML = opts;
+    if(cur) sel.value = cur;
+  }
+
+  function renderHealth(){
+    var out = document.getElementById('healthList');
+    if(!out) return;
+    var list = getHealthData();
+    if(!list.length){
+      out.innerHTML = '<div class="empty">لا توجد سجلات صحية بعد</div>';
+      return;
+    }
+    var html = '';
+    list.forEach(function(r,i){
+      var cls = getTypeClass(r.type);
+      var icon = getTypeIcon(r.type);
+      html += '<div class="health-row">';
+      html += '<div class="h-top">';
+      html += '<div><span class="h-animal">🐑 '+esc(r.animal)+'</span><span class="health-type '+cls+'">'+icon+' '+esc(r.type)+'</span></div>';
+      html += '<div class="h-date">'+esc(fmtDate(r.date))+'</div>';
+      html += '</div>';
+      html += '<div class="h-desc">'+esc(r.desc)+'</div>';
+      if(r.med) html += '<div class="h-med">💊 '+esc(r.med)+'</div>';
+      if(r.cost>0) html += '<div class="h-cost">💰 '+money(r.cost)+' دج</div>';
+      html += '<div style="margin-top:8px;text-align:left"><button class="danger" data-health-del="'+i+'">حذف</button></div>';
+      html += '</div>';
+    });
+    out.innerHTML = html;
+  }
+
+  function buildUI(){
+    var main = document.querySelector('main');
+    if(!main || document.getElementById('health')) return;
+    var s = document.createElement('section');
+    s.id = 'health';
+    s.className = 'page';
+    var opts = '';
+    HEALTH_TYPES.forEach(function(t){ opts += '<option>'+t+'</option>'; });
+    s.innerHTML = '<div class="card">'+
+      '<h2>📔 السجل الصحي</h2>'+
+      '<p class="small muted">تتبع التطعيمات، الأدوية، الأمراض، والفحوصات البيطرية لكل حيوان.</p>'+
+      '<label>الحيوان</label>'+
+      '<select id="healthAnimal"><option value="">-- اختر الحيوان --</option></select>'+
+      '<label>نوع السجل</label>'+
+      '<select id="healthType">'+opts+'</select>'+
+      '<label>التاريخ</label>'+
+      '<input id="healthDate" type="date">'+
+      '<label>الوصف</label>'+
+      '<textarea id="healthDesc" rows="2" maxlength="300" placeholder="مثال: تطعيم ضد الجدري، إصابة بالتهاب..."></textarea>'+
+      '<label>الدواء (اختياري)</label>'+
+      '<input id="healthMed" maxlength="80" placeholder="اسم الدواء والجرعة" inputmode="text">'+
+      '<label>التكلفة (دج) — اختياري</label>'+
+      '<input id="healthCost" type="number" min="0" step="0.01" placeholder="0" inputmode="decimal">'+
+      '<button class="btn" id="addHealthBtn">💾 حفظ السجل</button>'+
+      '</div>'+
+      '<div class="card"><h3>سجل الأحداث الصحية</h3><div id="healthList"></div></div>';
+    main.appendChild(s);
+
+    var nav = document.querySelector('nav');
+    if(nav && !nav.querySelector('[data-page="health"]')){
+      var b = document.createElement('button');
+      b.className = 'nav-btn';
+      b.setAttribute('data-page', 'health');
+      b.innerHTML = '<span>📔</span>صحي';
+      nav.appendChild(b);
+      b.addEventListener('click', function(){
+        if(typeof showPage === 'function') showPage('health');
+        refreshAnimalList();
+        var hd = document.getElementById('healthDate');
+        if(hd && !hd.value) hd.value = today();
+        renderHealth();
+      });
+    }
+
+    var quickGrid = document.querySelector('#home .grid');
+    if(quickGrid && !document.querySelector('#home [data-page="health"]')){
+      var qb = document.createElement('button');
+      qb.className = 'btn2 nav-btn';
+      qb.setAttribute('data-page', 'health');
+      qb.textContent = '📔 سجل صحي';
+      quickGrid.appendChild(qb);
+      qb.addEventListener('click', function(){
+        if(typeof showPage === 'function') showPage('health');
+        refreshAnimalList();
+        var hd = document.getElementById('healthDate');
+        if(hd && !hd.value) hd.value = today();
+        renderHealth();
+      });
+    }
+
+    var addBtn = document.getElementById('addHealthBtn');
+    if(addBtn) addBtn.addEventListener('click', addHealthRecord);
+  }
+
+  document.addEventListener('click', function(e){
+    var b = e.target.closest && e.target.closest('[data-health-del]');
+    if(!b) return;
+    var i = Number(b.getAttribute('data-health-del'));
+    delHealthRecord(i);
+  });
+
+  function init(){
+    buildUI();
+    refreshAnimalList();
+    var hd = document.getElementById('healthDate');
+    if(hd && !hd.value) hd.value = today();
+    renderHealth();
+    setTimeout(function(){ refreshAnimalList(); renderHealth(); }, 1000);
+    setTimeout(function(){ refreshAnimalList(); }, 2500);
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
 </body>
 </html>
