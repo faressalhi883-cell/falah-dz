@@ -1167,5 +1167,40 @@ body.dark-mode #hisnOut .dhikr{background:#2a2a3e!important;border-color:#3a3a4e
   else{setTimeout(init,500);}
 })();
 </script>
+  <style>
+#splashScreen{position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,#6a1b9a 0%,#8e24aa 50%,#2e7d32 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-family:system-ui,-apple-system,"Segoe UI",Tahoma,Arial,sans-serif;transition:opacity .6s ease,visibility .6s ease;padding:env(safe-area-inset-top) 20px env(safe-area-inset-bottom)}
+#splashScreen.hide{opacity:0;visibility:hidden}
+#splashLogo{font-size:80px;line-height:1;margin-bottom:18px;animation:splashPulse 1.6s ease-in-out infinite;filter:drop-shadow(0 4px 12px rgba(0,0,0,.3))}
+#splashTitle{font-size:32px;font-weight:bold;margin-bottom:6px;letter-spacing:.5px}
+#splashSub{font-size:14px;opacity:.9;margin-bottom:36px}
+#splashDots{display:flex;gap:8px;margin-bottom:20px}
+#splashDots span{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,.85);animation:splashBounce 1.4s ease-in-out infinite}
+#splashDots span:nth-child(2){animation-delay:.2s}
+#splashDots span:nth-child(3){animation-delay:.4s}
+#splashFooter{position:absolute;bottom:calc(30px + env(safe-area-inset-bottom,0px));font-size:11px;opacity:.7;letter-spacing:1px}
+@keyframes splashPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+@keyframes splashBounce{0%,80%,100%{transform:translateY(0);opacity:.5}40%{transform:translateY(-8px);opacity:1}}
+</style>
+
+<div id="splashScreen">
+  <div id="splashLogo">🌾</div>
+  <div id="splashTitle">فلاح DZ</div>
+  <div id="splashSub">منصة الفلاحة الشاملة</div>
+  <div id="splashDots"><span></span><span></span><span></span></div>
+  <div id="splashFooter">DZ · FALAH · 2025</div>
+</div>
+
+<script>
+(function(){
+  function hideSplash(){
+    var el=document.getElementById('splashScreen');
+    if(!el)return;
+    el.classList.add('hide');
+    setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el);},700);
+  }
+  window.addEventListener('load',function(){setTimeout(hideSplash,1600);});
+  setTimeout(hideSplash,2800);
+})();
+</script>
 </body>
 </html>
