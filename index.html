@@ -3510,5 +3510,295 @@ body.dark-mode .harvest-profit.neg{color:#ef5350!important}
   else{setTimeout(initAll,300);}
 })();
 </script>
+  <style>
+.equip-item,.fuel-item,.supplier-item{background:var(--light);border-radius:12px;padding:12px;margin-bottom:10px}
+body.dark-mode .equip-item,body.dark-mode .fuel-item,body.dark-mode .supplier-item{background:#2a2a3e!important}
+.equip-item{border-right:4px solid #8e24aa}
+.fuel-item{border-right:4px solid #ff9800}
+.supplier-item{border-right:4px solid #2e7d32}
+.equip-head,.fuel-head,.supplier-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:8px}
+.equip-name,.fuel-vehicle,.supplier-name{font-weight:bold;color:var(--green);font-size:14px}
+.equip-badge,.fuel-badge,.supplier-badge{font-size:11px;padding:3px 8px;border-radius:6px;font-weight:bold;white-space:nowrap}
+.equip-badge.ok,.supplier-badge{background:#e8f5e9;color:#2e7d32}
+.equip-badge.warn{background:#fff3e0;color:#e65100}
+.equip-badge.overdue{background:#ffebee;color:#c62828}
+body.dark-mode .equip-badge.ok,body.dark-mode .supplier-badge{background:#1a5a1a;color:#81c784}
+body.dark-mode .equip-badge.warn{background:#5a3a1a;color:#ffb74d}
+body.dark-mode .equip-badge.overdue{background:#5a1a1a;color:#ef5350}
+.equip-info,.fuel-info,.supplier-info{font-size:11px;color:var(--muted);margin-top:4px}
+.supplier-actions{margin-top:8px;display:flex;gap:6px}
+.supplier-call{background:#25d366;color:#fff;padding:6px 12px;border-radius:8px;text-decoration:none;font-size:12px;font-weight:bold;flex:1;text-align:center}
+.fuel-summary,.equip-summary{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+</style>
+
+<script>
+/* ============== ميزة 19: المعدات والصيانة ============== */
+(function(){
+  function getEquip(){ try{ if(!data.equip) data.equip=[]; return data.equip; }catch(e){return [];} }
+  function saveE(){ try{ save(); }catch(e){} }
+  function daysDiff(d){ if(!d) return 99999; var dt=new Date(d+'T00:00:00'); if(isNaN(dt.getTime())) return 99999; var t=new Date(); t.setHours(0,0,0,0); return Math.floor((dt-t)/86400000); }
+  function addEquip(){
+    var name=document.getElementById('eqName').value.trim();
+    var type=document.getElementById('eqType').value;
+    var lastMain=document.getElementById('eqLastMain').value||today();
+    var nextMain=document.getElementById('eqNextMain').value;
+    var cost=parseFloat(document.getElementById('eqCost').value)||0;
+    var note=document.getElementById('eqNote').value.trim();
+    if(!name){ toast('اكتب اسم المعدة','err'); return; }
+    getEquip().push({name:name,type:type,lastMain:lastMain,nextMain:nextMain,cost:cost,note:note,addedAt:Date.now()});
+    saveE();
+    document.getElementById('eqName').value='';
+    document.getElementById('eqNextMain').value='';
+    document.getElementById('eqCost').value='';
+    document.getElementById('eqNote').value='';
+    renderEquip();
+    toast('تم حفظ المعدة','ok');
+  }
+  function delEquip(i){
+    if(!confirm('حذف هذه المعدة؟')) return;
+    getEquip().splice(i,1); saveE(); renderEquip(); toast('تم الحذف','ok');
+  }
+  function renderEquip(){
+    var out=document.getElementById('eqList'); if(!out) return;
+    var list=getEquip();
+    if(!list.length){ out.innerHTML='<div class="empty">لا توجد معدات مسجلة</div>'; return; }
+    var totalCost=0; list.forEach(function(e){ totalCost+=e.cost; });
+    var summary=document.getElementById('eqSummary');
+    if(summary){
+      summary.innerHTML='<div class="stat"><b style="color:#8e24aa">'+list.length+'</b><span>معدات</span></div>'+
+        '<div class="stat"><b style="color:#2e7d32">'+money(totalCost)+'</b><span>تكاليف الصيانة (دج)</span></div>';
+    }
+    var html='';
+    list.forEach(function(e,i){
+      var diff=daysDiff(e.nextMain);
+      var badge='';
+      if(!e.nextMain) badge='<span class="equip-badge ok">📅 بدون موعد</span>';
+      else if(diff<0) badge='<span class="equip-badge overdue">🔴 متأخر بـ '+Math.abs(diff)+' يوم</span>';
+      else if(diff<=7) badge='<span class="equip-badge warn">🟡 صيانة بعد '+diff+' يوم</span>';
+      else badge='<span class="equip-badge ok">🟢 '+diff+' يوم</span>';
+      html+='<div class="equip-item">';
+      html+='<div class="equip-head"><span class="equip-name">🚜 '+esc(e.name)+'</span><span style="font-size:11px;color:var(--muted)">'+esc(e.type)+'</span></div>';
+      html+='<div class="equip-info">📅 آخر صيانة: '+esc(fmtDate(e.lastMain))+'</div>';
+      if(e.nextMain) html+='<div class="equip-info">⏰ الصيانة القادمة: '+esc(fmtDate(e.nextMain))+'</div>';
+      if(e.cost>0) html+='<div class="equip-info">💰 '+money(e.cost)+' دج</div>';
+      if(e.note) html+='<div class="equip-info" style="color:var(--muted)">📝 '+esc(e.note)+'</div>';
+      html+='<div style="margin-top:6px">'+badge+'</div>';
+      html+='<div style="margin-top:8px;text-align:left"><button class="danger" data-eq-del="'+i+'">حذف</button></div>';
+      html+='</div>';
+    });
+    out.innerHTML=html;
+  }
+  function buildEquip(){
+    var main=document.querySelector('main'); if(!main||document.getElementById('equipment')) return;
+    var s=document.createElement('section'); s.id='equipment'; s.className='page';
+    s.innerHTML='<div class="card"><h2>🚜 المعدات والصيانة</h2>'+
+      '<p class="small muted">تتبع الجرار، المضخات، الشاحنات، ومواعيد الصيانة.</p>'+
+      '<div class="equip-summary" id="eqSummary"></div></div>'+
+      '<div class="card"><h3>➕ إضافة معدة</h3>'+
+      '<label>اسم المعدة</label><input id="eqName" maxlength="60" placeholder="جرار، مضخة، شاحنة" inputmode="text">'+
+      '<label>النوع</label><select id="eqType"><option>جرار</option><option>مضخة</option><option>شاحنة</option><option>آلة حصاد</option><option>أدوات يدوية</option><option>أخرى</option></select>'+
+      '<label>تاريخ آخر صيانة</label><input id="eqLastMain" type="date">'+
+      '<label>تاريخ الصيانة القادمة (اختياري)</label><input id="eqNextMain" type="date">'+
+      '<label>تكلفة الصيانة (دج) — اختياري</label><input id="eqCost" type="number" min="0" step="0.01" placeholder="0" inputmode="decimal">'+
+      '<label>ملاحظة (اختياري)</label><input id="eqNote" maxlength="100" placeholder="مثال: تغيير زيت" inputmode="text">'+
+      '<button class="btn" id="addEqBtn">💾 حفظ المعدة</button></div>'+
+      '<div class="card"><h3>📋 القائمة</h3><div id="eqList"></div></div>';
+    main.appendChild(s);
+    var nav=document.querySelector('nav');
+    if(nav&&!nav.querySelector('[data-page="equipment"]')){
+      var b=document.createElement('button'); b.className='nav-btn'; b.setAttribute('data-page','equipment');
+      b.innerHTML='<span>🚜</span>معدات'; nav.appendChild(b);
+      b.addEventListener('click',function(){ if(typeof showPage==='function') showPage('equipment'); renderEquip(); });
+    }
+    var btn=document.getElementById('addEqBtn'); if(btn) btn.addEventListener('click',addEquip);
+  }
+  document.addEventListener('click',function(e){
+    var b=e.target.closest&&e.target.closest('[data-eq-del]');
+    if(b){ delEquip(Number(b.getAttribute('data-eq-del'))); }
+  });
+  window.__buildEquip=buildEquip; window.__renderEquip=renderEquip;
+})();
+
+/* ============== ميزة 20: سجل الوقود ============== */
+(function(){
+  function getFuel(){ try{ if(!data.fuel) data.fuel=[]; return data.fuel; }catch(e){return [];} }
+  function saveF(){ try{ save(); }catch(e){} }
+  function addFuel(){
+    var vehicle=document.getElementById('fuVehicle').value.trim();
+    var date=document.getElementById('fuDate').value||today();
+    var liters=parseFloat(document.getElementById('fuLiters').value)||0;
+    var price=parseFloat(document.getElementById('fuPrice').value)||0;
+    var km=parseFloat(document.getElementById('fuKm').value)||0;
+    var note=document.getElementById('fuNote').value.trim();
+    if(!vehicle){ toast('اكتب اسم المركبة','err'); return; }
+    if(liters<=0){ toast('اكتب عدد اللترات','err'); return; }
+    getFuel().push({vehicle:vehicle,date:date,liters:liters,price:price,km:km,note:note,addedAt:Date.now()});
+    saveF();
+    document.getElementById('fuVehicle').value='';
+    document.getElementById('fuLiters').value='';
+    document.getElementById('fuPrice').value='';
+    document.getElementById('fuKm').value='';
+    document.getElementById('fuNote').value='';
+    renderFuel();
+    toast('تم حفظ الوقود','ok');
+  }
+  function delFuel(i){
+    if(!confirm('حذف هذا السجل؟')) return;
+    getFuel().splice(i,1); saveF(); renderFuel(); toast('تم الحذف','ok');
+  }
+  function renderFuel(){
+    var out=document.getElementById('fuList'); if(!out) return;
+    var list=getFuel();
+    var totalL=0,totalCost=0;
+    list.forEach(function(f){ totalL+=f.liters; totalCost+=f.liters*f.price; });
+    var summary=document.getElementById('fuSummary');
+    if(summary){
+      summary.innerHTML='<div class="stat"><b style="color:#ff9800">'+totalL.toFixed(0)+'</b><span>إجمالي لتر</span></div>'+
+        '<div class="stat"><b style="color:#d32f2f">'+money(totalCost)+'</b><span>التكلفة (دج)</span></div>';
+    }
+    if(!list.length){ out.innerHTML='<div class="empty">لا توجد سجلات وقود</div>'; return; }
+    var html='';
+    list.slice().sort(function(a,b){return String(b.date).localeCompare(String(a.date));}).forEach(function(f){
+      var realIdx=list.findIndex(function(x){return x.addedAt===f.addedAt;});
+      var cost=f.liters*f.price;
+      html+='<div class="fuel-item">';
+      html+='<div class="fuel-head"><span class="fuel-vehicle">⛽ '+esc(f.vehicle)+'</span><span class="fuel-badge" style="background:#fff3e0;color:#e65100">'+f.liters+' لتر</span></div>';
+      html+='<div class="fuel-info">📅 '+esc(fmtDate(f.date))+(f.price>0?' • 💰 '+f.price+' دج/لتر':'')+(f.km>0?' • 🛣️ '+f.km+' كم':'')+'</div>';
+      if(cost>0) html+='<div class="fuel-info" style="color:#d32f2f;font-weight:bold">التكلفة: '+money(cost)+' دج</div>';
+      if(f.note) html+='<div class="fuel-info" style="color:var(--muted)">📝 '+esc(f.note)+'</div>';
+      html+='<div style="margin-top:8px;text-align:left"><button class="danger" data-fu-del="'+realIdx+'">حذف</button></div>';
+      html+='</div>';
+    });
+    out.innerHTML=html;
+  }
+  function buildFuel(){
+    var main=document.querySelector('main'); if(!main||document.getElementById('fuelPage')) return;
+    var s=document.createElement('section'); s.id='fuelPage'; s.className='page';
+    s.innerHTML='<div class="card"><h2>⛽ سجل الوقود</h2>'+
+      '<p class="small muted">تتبع استهلاك الوقود وتكلفته للمركبات والمعدات.</p>'+
+      '<div class="fuel-summary" id="fuSummary"></div></div>'+
+      '<div class="card"><h3>➕ إضافة سجل</h3>'+
+      '<label>المركبة/المعدة</label><input id="fuVehicle" maxlength="60" placeholder="جرار، شاحنة، سيارة" inputmode="text">'+
+      '<label>التاريخ</label><input id="fuDate" type="date">'+
+      '<label>عدد اللترات</label><input id="fuLiters" type="number" min="0" step="0.1" placeholder="0" inputmode="decimal">'+
+      '<label>سعر اللتر (دج)</label><input id="fuPrice" type="number" min="0" step="0.01" placeholder="0" inputmode="decimal">'+
+      '<label>المسافة (كم) — اختياري</label><input id="fuKm" type="number" min="0" step="0.1" placeholder="0" inputmode="decimal">'+
+      '<label>ملاحظة (اختياري)</label><input id="fuNote" maxlength="80" inputmode="text">'+
+      '<button class="btn" id="addFuBtn">💾 حفظ</button></div>'+
+      '<div class="card"><h3>📋 السجل</h3><div id="fuList"></div></div>';
+    main.appendChild(s);
+    var nav=document.querySelector('nav');
+    if(nav&&!nav.querySelector('[data-page="fuelPage"]')){
+      var b=document.createElement('button'); b.className='nav-btn'; b.setAttribute('data-page','fuelPage');
+      b.innerHTML='<span>⛽</span>وقود'; nav.appendChild(b);
+      b.addEventListener('click',function(){
+        if(typeof showPage==='function') showPage('fuelPage');
+        var d=document.getElementById('fuDate'); if(d&&!d.value) d.value=today();
+        renderFuel();
+      });
+    }
+    var btn=document.getElementById('addFuBtn'); if(btn) btn.addEventListener('click',addFuel);
+  }
+  document.addEventListener('click',function(e){
+    var b=e.target.closest&&e.target.closest('[data-fu-del]');
+    if(b){ delFuel(Number(b.getAttribute('data-fu-del'))); }
+  });
+  window.__buildFuel=buildFuel; window.__renderFuel=renderFuel;
+})();
+
+/* ============== ميزة 21: دليل الموردين ============== */
+(function(){
+  function getSuppliers(){ try{ if(!data.suppliers) data.suppliers=[]; return data.suppliers; }catch(e){return [];} }
+  function saveS(){ try{ save(); }catch(e){} }
+  function addSupplier(){
+    var name=document.getElementById('spName').value.trim();
+    var phone=document.getElementById('spPhone').value.trim();
+    var category=document.getElementById('spCategory').value;
+    var city=document.getElementById('spCity').value.trim();
+    var note=document.getElementById('spNote').value.trim();
+    if(!name){ toast('اكتب اسم المورد','err'); return; }
+    getSuppliers().push({name:name,phone:phone,category:category,city:city,note:note,addedAt:Date.now()});
+    saveS();
+    document.getElementById('spName').value='';
+    document.getElementById('spPhone').value='';
+    document.getElementById('spCity').value='';
+    document.getElementById('spNote').value='';
+    renderSuppliers();
+    toast('تم حفظ المورد','ok');
+  }
+  function delSupplier(i){
+    if(!confirm('حذف هذا المورد؟')) return;
+    getSuppliers().splice(i,1); saveS(); renderSuppliers(); toast('تم الحذف','ok');
+  }
+  function renderSuppliers(){
+    var out=document.getElementById('spList'); if(!out) return;
+    var list=getSuppliers();
+    if(!list.length){ out.innerHTML='<div class="empty">لا توجد موردون مسجلون</div>'; return; }
+    var html='';
+    list.forEach(function(s,i){
+      html+='<div class="supplier-item">';
+      html+='<div class="supplier-head"><span class="supplier-name">🏪 '+esc(s.name)+'</span><span class="supplier-badge">'+esc(s.category)+'</span></div>';
+      if(s.city) html+='<div class="supplier-info">📍 '+esc(s.city)+'</div>';
+      if(s.note) html+='<div class="supplier-info" style="color:var(--muted)">📝 '+esc(s.note)+'</div>';
+      html+='<div class="supplier-actions">';
+      if(s.phone){
+        html+='<a class="supplier-call" href="tel:'+esc(s.phone)+'">📞 '+esc(s.phone)+'</a>';
+        html+='<a class="supplier-call" style="background:#25d366" href="https://wa.me/'+esc(s.phone.replace(/[^0-9]/g,''))+'" target="_blank" rel="noopener">💬 واتساب</a>';
+      }
+      html+='<button class="danger" data-sp-del="'+i+'">حذف</button>';
+      html+='</div></div>';
+    });
+    out.innerHTML=html;
+  }
+  function buildSuppliers(){
+    var main=document.querySelector('main'); if(!main||document.getElementById('suppliers')) return;
+    var s=document.createElement('section'); s.id='suppliers'; s.className='page';
+    s.innerHTML='<div class="card"><h2>🏪 دليل الموردين</h2>'+
+      '<p class="small muted">احفظ هواتف بائعي الأعلاف، الأدوية، البذور، وأرقام الاتصال السريع.</p></div>'+
+      '<div class="card"><h3>➕ إضافة مورد</h3>'+
+      '<label>اسم المورد</label><input id="spName" maxlength="60" placeholder="اسم التاجر/الشركة" inputmode="text">'+
+      '<label>رقم الهاتف</label><input id="spPhone" maxlength="20" placeholder="0555XXXXXX" inputmode="tel">'+
+      '<label>الفئة</label><select id="spCategory"><option>أعلاف</option><option>أدوية بيطرية</option><option>بذور</option><option>سماد</option><option>معدات</option><option>نقل</option><option>أخرى</option></select>'+
+      '<label>المدينة (اختياري)</label><input id="spCity" maxlength="40" inputmode="text">'+
+      '<label>ملاحظة (اختياري)</label><input id="spNote" maxlength="100" placeholder="مثال: أسعار جيدة" inputmode="text">'+
+      '<button class="btn" id="addSpBtn">💾 حفظ المورد</button></div>'+
+      '<div class="card"><h3>📋 القائمة</h3><div id="spList"></div></div>';
+    main.appendChild(s);
+    var nav=document.querySelector('nav');
+    if(nav&&!nav.querySelector('[data-page="suppliers"]')){
+      var b=document.createElement('button'); b.className='nav-btn'; b.setAttribute('data-page','suppliers');
+      b.innerHTML='<span>🏪</span>موردون'; nav.appendChild(b);
+      b.addEventListener('click',function(){ if(typeof showPage==='function') showPage('suppliers'); renderSuppliers(); });
+    }
+    var btn=document.getElementById('addSpBtn'); if(btn) btn.addEventListener('click',addSupplier);
+  }
+  document.addEventListener('click',function(e){
+    var b=e.target.closest&&e.target.closest('[data-sp-del]');
+    if(b){ delSupplier(Number(b.getAttribute('data-sp-del'))); }
+  });
+  window.__buildSuppliers=buildSuppliers; window.__renderSuppliers=renderSuppliers;
+})();
+
+/* تشغيل الثلاثة */
+(function(){
+  function initAll(){
+    try{ window.__buildEquip(); }catch(e){console.warn(e);}
+    try{ window.__buildFuel(); }catch(e){console.warn(e);}
+    try{ window.__buildSuppliers(); }catch(e){console.warn(e);}
+    try{ window.__renderEquip(); }catch(e){}
+    try{ window.__renderFuel(); }catch(e){}
+    try{ window.__renderSuppliers(); }catch(e){}
+    var d1=document.getElementById('eqLastMain'); if(d1&&!d1.value) d1.value=today();
+    var d2=document.getElementById('fuDate'); if(d2&&!d2.value) d2.value=today();
+    setTimeout(function(){
+      try{ window.__renderEquip(); }catch(e){}
+      try{ window.__renderFuel(); }catch(e){}
+      try{ window.__renderSuppliers(); }catch(e){}
+    },1200);
+  }
+  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',initAll);}
+  else{setTimeout(initAll,300);}
+})();
+</script>
 </body>
 </html>
