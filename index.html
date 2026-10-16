@@ -3800,5 +3800,35 @@ body.dark-mode .equip-badge.overdue{background:#5a1a1a;color:#ef5350}
   else{setTimeout(initAll,300);}
 })();
 </script>
+  <script>
+(function(){
+  function addButtonsToHome(){
+    var qg = document.querySelector('#home .grid');
+    if(!qg) return;
+    var items = [
+      {page:'equipment', label:'🚜 معدات'},
+      {page:'fuelPage', label:'⛽ وقود'},
+      {page:'suppliers', label:'🏪 موردون'}
+    ];
+    items.forEach(function(it){
+      if(document.querySelector('#home [data-page="'+it.page+'"]')) return;
+      var b = document.createElement('button');
+      b.className = 'btn2 nav-btn';
+      b.setAttribute('data-page', it.page);
+      b.textContent = it.label;
+      qg.appendChild(b);
+      b.addEventListener('click', function(){
+        if(typeof showPage === 'function') showPage(it.page);
+      });
+    });
+  }
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', function(){setTimeout(addButtonsToHome, 600);});
+  } else {
+    setTimeout(addButtonsToHome, 600);
+  }
+  setTimeout(addButtonsToHome, 2000);
+})();
+</script>
 </body>
 </html>
