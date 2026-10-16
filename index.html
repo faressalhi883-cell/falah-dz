@@ -3149,5 +3149,366 @@ body.dark-mode .irrig-badge.upcoming{background:#1a3a5a;color:#64b5f6}
   }
 })();
 </script>
+  <style>
+/* سجل التلقيح */
+.breed-item{background:var(--light);border-radius:12px;padding:12px;margin-bottom:10px;border-right:4px solid #e91e63}
+body.dark-mode .breed-item{background:#2a2a3e!important}
+.breed-item.completed{border-right-color:#2e7d32}
+.breed-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.breed-female{font-weight:bold;color:var(--green);font-size:14px}
+.breed-date{font-size:11px;color:var(--muted)}
+.breed-info{font-size:12px;color:var(--text);margin-top:4px}
+.breed-badge{display:inline-block;padding:4px 10px;border-radius:8px;font-size:11px;font-weight:bold;margin-top:8px}
+.breed-badge.wait{background:#fce4ec;color:#c2185b}
+.breed-badge.soon{background:#fff3e0;color:#e65100}
+.breed-badge.done{background:#e8f5e9;color:#2e7d32}
+.breed-badge.overdue{background:#ffebee;color:#c62828}
+body.dark-mode .breed-badge.wait{background:#5a1a3a;color:#f48fb1}
+body.dark-mode .breed-badge.soon{background:#5a3a1a;color:#ffb74d}
+body.dark-mode .breed-badge.done{background:#1a5a1a;color:#81c784}
+body.dark-mode .breed-badge.overdue{background:#5a1a1a;color:#ef5350}
+.breed-progress{height:6px;background:rgba(0,0,0,.08);border-radius:3px;overflow:hidden;margin-top:6px}
+body.dark-mode .breed-progress{background:rgba(255,255,255,.1)}
+.breed-progress-fill{height:100%;background:linear-gradient(90deg,#e91e63,#8e24aa);border-radius:3px;transition:width .5s}
+/* خلطة علفية */
+.mix-result{background:var(--light);border-radius:12px;padding:12px;margin-top:12px}
+body.dark-mode .mix-result{background:#2a2a3e!important}
+.mix-item{display:flex;justify-content:space-between;padding:8px 10px;background:rgba(255,255,255,.6);border-radius:8px;margin-bottom:6px;font-size:13px}
+body.dark-mode .mix-item{background:rgba(0,0,0,.3)}
+.mix-item b{color:var(--green)}
+.mix-total{background:linear-gradient(135deg,#6a1b9a,#2e7d32);color:#fff;padding:10px;border-radius:10px;text-align:center;font-weight:bold;margin-top:10px}
+/* سجل الحصاد */
+.harvest-item{background:var(--light);border-radius:12px;padding:12px;margin-bottom:10px;border-right:4px solid #ff9800}
+body.dark-mode .harvest-item{background:#2a2a3e!important}
+.harvest-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.harvest-crop{font-weight:bold;color:var(--green);font-size:14px}
+.harvest-qty{background:linear-gradient(135deg,#ff9800,#f57c00);color:#fff;padding:4px 10px;border-radius:8px;font-size:12px;font-weight:bold}
+.harvest-info{font-size:12px;color:var(--muted);margin-top:4px}
+.harvest-profit{font-size:13px;font-weight:bold;margin-top:6px}
+.harvest-profit.pos{color:#2e7d32}
+.harvest-profit.neg{color:#d32f2f}
+body.dark-mode .harvest-profit.pos{color:#81c784!important}
+body.dark-mode .harvest-profit.neg{color:#ef5350!important}
+.harvest-summary{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+</style>
+
+<script>
+/* ============== ميزة 16: سجل التلقيح ============== */
+(function(){
+  function getBreed(){
+    try{ if(!data.breeding) data.breeding=[]; return data.breeding; }catch(e){return [];}
+  }
+  function saveB(){ try{ save(); }catch(e){} }
+  function daysDiff(dateStr){
+    if(!dateStr) return 99999;
+    var d=new Date(dateStr+'T00:00:00'); if(isNaN(d.getTime())) return 99999;
+    var t=new Date(); t.setHours(0,0,0,0);
+    return Math.floor((d-t)/86400000);
+  }
+  function addBreed(){
+    var female=document.getElementById('brFemale').value.trim();
+    var male=document.getElementById('brMale').value.trim();
+    var date=document.getElementById('brDate').value||today();
+    var note=document.getElementById('brNote').value.trim();
+    if(!female){ toast('اكتب اسم الأنثى','err'); return; }
+    var expDate=new Date(date+'T00:00:00');
+    expDate.setDate(expDate.getDate()+150);
+    var expStr=expDate.getFullYear()+'-'+String(expDate.getMonth()+1).padStart(2,'0')+'-'+String(expDate.getDate()).padStart(2,'0');
+    getBreed().push({female:female,male:male,date:date,expDate:expStr,note:note,done:false,addedAt:Date.now()});
+    saveB();
+    document.getElementById('brFemale').value='';
+    document.getElementById('brMale').value='';
+    document.getElementById('brNote').value='';
+    renderBreed();
+    toast('تم حفظ سجل التلقيح','ok');
+  }
+  function toggleDone(i){
+    var b=getBreed()[i]; if(!b) return;
+    b.done=!b.done; saveB(); renderBreed();
+    toast(b.done?'تم تسجيل الولادة 🎉':'تم التراجع','ok');
+  }
+  function delBreed(i){
+    if(!confirm('حذف هذا السجل؟')) return;
+    getBreed().splice(i,1); saveB(); renderBreed(); toast('تم الحذف','ok');
+  }
+  function renderBreed(){
+    var out=document.getElementById('brList'); if(!out) return;
+    var list=getBreed();
+    if(!list.length){ out.innerHTML='<div class="empty">لا توجد سجلات تلقيح</div>'; return; }
+    var sorted=list.map(function(it,i){return{it:it,i:i};}).sort(function(a,b){
+      if(a.it.done!==b.it.done) return a.it.done?1:-1;
+      return daysDiff(a.it.expDate)-daysDiff(b.it.expDate);
+    });
+    var html='';
+    sorted.forEach(function(item){
+      var b=item.it,i=item.i;
+      var diff=daysDiff(b.expDate);
+      var cls='',badge='';
+      if(b.done){ cls='completed'; badge='<span class="breed-badge done">✅ تمت الولادة</span>'; }
+      else if(diff<0){ cls=''; badge='<span class="breed-badge overdue">🔴 متأخر بـ '+Math.abs(diff)+' يوم</span>'; }
+      else if(diff<=14){ cls=''; badge='<span class="breed-badge soon">🟡 ولادة خلال '+diff+' يوم</span>'; }
+      else { cls=''; badge='<span class="breed-badge wait">🐑 '+diff+' يوم متبقي</span>'; }
+      var progress=Math.min(100,Math.max(0,Math.round(((150-Math.max(0,diff))/150)*100)));
+      html+='<div class="breed-item '+cls+'">';
+      html+='<div class="breed-head"><span class="breed-female">🐑 '+esc(b.female)+'</span><span class="breed-date">📅 '+esc(fmtDate(b.date))+'</span></div>';
+      if(b.male) html+='<div class="breed-info">♂️ الذكر: '+esc(b.male)+'</div>';
+      html+='<div class="breed-info">🤰 الولادة المتوقعة: '+esc(fmtDate(b.expDate))+'</div>';
+      if(b.note) html+='<div class="breed-info" style="color:var(--muted)">📝 '+esc(b.note)+'</div>';
+      html+=badge;
+      if(!b.done) html+='<div class="breed-progress"><div class="breed-progress-fill" style="width:'+progress+'%"></div></div>';
+      html+='<div style="margin-top:8px;display:flex;gap:6px">';
+      if(!b.done) html+='<button class="btn2" style="flex:1;padding:6px;font-size:12px" data-breed-done="'+i+'">✅ ولادة</button>';
+      else html+='<button class="btn2" style="flex:1;padding:6px;font-size:12px" data-breed-done="'+i+'">↩ تراجع</button>';
+      html+='<button class="danger" data-breed-del="'+i+'">حذف</button>';
+      html+='</div></div>';
+    });
+    out.innerHTML=html;
+  }
+  function buildBreed(){
+    var main=document.querySelector('main'); if(!main||document.getElementById('breeding')) return;
+    var s=document.createElement('section'); s.id='breeding'; s.className='page';
+    s.innerHTML='<div class="card">'+
+      '<h2>🐑 سجل التلقيح</h2>'+
+      '<p class="small muted">متابعة التلقيح ومواعيد الولادة المتوقعة (150 يوم).</p>'+
+      '</div>'+
+      '<div class="card">'+
+      '<h3>➕ إضافة تلقيح</h3>'+
+      '<label>الأنثى (الأم)</label>'+
+      '<input id="brFemale" maxlength="60" placeholder="مثال: ماعز 12" inputmode="text">'+
+      '<label>الذكر (اختياري)</label>'+
+      '<input id="brMale" maxlength="60" placeholder="اسم الفحل" inputmode="text">'+
+      '<label>تاريخ التلقيح</label>'+
+      '<input id="brDate" type="date">'+
+      '<label>ملاحظة (اختياري)</label>'+
+      '<input id="brNote" maxlength="80" placeholder="مثال: تلقيح اصطناعي" inputmode="text">'+
+      '<button class="btn" id="addBrBtn">💾 حفظ التلقيح</button>'+
+      '</div>'+
+      '<div class="card"><h3>📋 السجلات</h3><div id="brList"></div></div>';
+    main.appendChild(s);
+    var nav=document.querySelector('nav');
+    if(nav&&!nav.querySelector('[data-page="breeding"]')){
+      var b=document.createElement('button'); b.className='nav-btn'; b.setAttribute('data-page','breeding');
+      b.innerHTML='<span>🐑</span>تلقيح'; nav.appendChild(b);
+      b.addEventListener('click',function(){
+        if(typeof showPage==='function') showPage('breeding');
+        var d=document.getElementById('brDate'); if(d&&!d.value) d.value=today();
+        renderBreed();
+      });
+    }
+    var qg=document.querySelector('#home .grid');
+    if(qg&&!document.querySelector('#home [data-page="breeding"]')){
+      var qb=document.createElement('button'); qb.className='btn2 nav-btn'; qb.setAttribute('data-page','breeding');
+      qb.textContent='🐑 تلقيح'; qg.appendChild(qb);
+      qb.addEventListener('click',function(){
+        if(typeof showPage==='function') showPage('breeding');
+        var d=document.getElementById('brDate'); if(d&&!d.value) d.value=today();
+        renderBreed();
+      });
+    }
+    var btn=document.getElementById('addBrBtn'); if(btn) btn.addEventListener('click',addBreed);
+  }
+  document.addEventListener('click',function(e){
+    var t=e.target.closest&&e.target.closest('[data-breed-done]');
+    if(t){ toggleDone(Number(t.getAttribute('data-breed-done'))); return; }
+    var d=e.target.closest&&e.target.closest('[data-breed-del]');
+    if(d){ delBreed(Number(d.getAttribute('data-breed-del'))); }
+  });
+  window.__buildBreed=buildBreed; window.__renderBreed=renderBreed;
+})();
+
+/* ============== ميزة 17: خلطة علفية ============== */
+(function(){
+  var RECIPES={
+    'تسمين':{base:100,parts:[{n:'شعير',p:60},{n:'ذرة',p:25},{n:'صويا',p:10},{n:'معادن',p:5}]},
+    'إدرار حليب':{base:100,parts:[{n:'شعير',p:45},{n:'ذرة',p:20},{n:'صويا',p:20},{n:'نخالة',p:10},{n:'معادن',p:5}]},
+    'تكاثر':{base:100,parts:[{n:'شعير',p:50},{n:'ذرة',p:20},{n:'صويا',p:15},{n:'نخالة',p:10},{n:'معادن',p:5}]},
+    'حملان صغيرة':{base:100,parts:[{n:'شعير مجروش',p:40},{n:'ذرة',p:30},{n:'صويا',p:20},{n:'حليب بودرة',p:5},{n:'معادن',p:5}]},
+    'دواجن':{base:100,parts:[{n:'ذرة',p:55},{n:'صويا',p:30},{n:'نخالة',p:8},{n:'معادن',p:4},{n:'زيت',p:3}]}
+  };
+  function calcMix(){
+    var recipe=document.getElementById('mixRecipe').value;
+    var total=parseFloat(document.getElementById('mixTotal').value)||0;
+    var out=document.getElementById('mixOut');
+    if(!out) return;
+    if(total<=0){ out.innerHTML='<div class="empty">اكتب الكمية الإجمالية (كغ)</div>'; return; }
+    var r=RECIPES[recipe];
+    if(!r){ out.innerHTML='<div class="empty">اختر الوصفة</div>'; return; }
+    var html='<div class="mix-result">';
+    html+='<h3 style="margin:0 0 10px;text-align:center;color:var(--green)">🧮 خلطة "'+esc(recipe)+'" — '+total+' كغ</h3>';
+    r.parts.forEach(function(p){
+      var kg=(p.p/100)*total;
+      html+='<div class="mix-item"><span>🌾 '+esc(p.n)+' ('+p.p+'%)</span><b>'+kg.toFixed(1)+' كغ</b></div>';
+    });
+    html+='<div class="mix-total">الإجمالي: '+total+' كغ</div>';
+    html+='</div>';
+    out.innerHTML=html;
+  }
+  function buildMix(){
+    var main=document.querySelector('main'); if(!main||document.getElementById('mixer')) return;
+    var s=document.createElement('section'); s.id='mixer'; s.className='page';
+    var opts=''; Object.keys(RECIPES).forEach(function(k){ opts+='<option>'+k+'</option>'; });
+    s.innerHTML='<div class="card">'+
+      '<h2>🧮 خلطة علفية</h2>'+
+      '<p class="small muted">احسب كمية كل مكون حسب الهدف من التغذية.</p>'+
+      '<label>الهدف من الخلطة</label>'+
+      '<select id="mixRecipe">'+opts+'</select>'+
+      '<label>الكمية الإجمالية (كغ)</label>'+
+      '<input id="mixTotal" type="number" min="1" step="1" placeholder="100" inputmode="decimal">'+
+      '<button class="btn" id="calcMixBtn">🧮 احسب الخلطة</button>'+
+      '<div id="mixOut" style="margin-top:12px"></div>'+
+      '</div>';
+    main.appendChild(s);
+    var nav=document.querySelector('nav');
+    if(nav&&!nav.querySelector('[data-page="mixer"]')){
+      var b=document.createElement('button'); b.className='nav-btn'; b.setAttribute('data-page','mixer');
+      b.innerHTML='<span>🧮</span>خلطة'; nav.appendChild(b);
+      b.addEventListener('click',function(){ if(typeof showPage==='function') showPage('mixer'); });
+    }
+    var qg=document.querySelector('#home .grid');
+    if(qg&&!document.querySelector('#home [data-page="mixer"]')){
+      var qb=document.createElement('button'); qb.className='btn2 nav-btn'; qb.setAttribute('data-page','mixer');
+      qb.textContent='🧮 خلطة علفية'; qg.appendChild(qb);
+      qb.addEventListener('click',function(){ if(typeof showPage==='function') showPage('mixer'); });
+    }
+    var btn=document.getElementById('calcMixBtn'); if(btn) btn.addEventListener('click',calcMix);
+  }
+  window.__buildMix=buildMix;
+})();
+
+/* ============== ميزة 18: سجل الحصاد ============== */
+(function(){
+  function getHarvest(){
+    try{ if(!data.harvest) data.harvest=[]; return data.harvest; }catch(e){return [];}
+  }
+  function saveH(){ try{ save(); }catch(e){} }
+  function addHarvest(){
+    var crop=document.getElementById('hvCrop').value.trim();
+    var date=document.getElementById('hvDate').value||today();
+    var qty=parseFloat(document.getElementById('hvQty').value)||0;
+    var price=parseFloat(document.getElementById('hvPrice').value)||0;
+    var cost=parseFloat(document.getElementById('hvCost').value)||0;
+    var note=document.getElementById('hvNote').value.trim();
+    if(!crop){ toast('اكتب اسم المحصول','err'); return; }
+    if(qty<=0){ toast('اكتب كمية صحيحة','err'); return; }
+    getHarvest().push({crop:crop,date:date,qty:qty,price:price,cost:cost,note:note,addedAt:Date.now()});
+    saveH();
+    document.getElementById('hvCrop').value='';
+    document.getElementById('hvQty').value='';
+    document.getElementById('hvPrice').value='';
+    document.getElementById('hvCost').value='';
+    document.getElementById('hvNote').value='';
+    renderHarvest();
+    toast('تم حفظ الحصاد','ok');
+  }
+  function delHarvest(i){
+    if(!confirm('حذف هذا الحصاد؟')) return;
+    getHarvest().splice(i,1); saveH(); renderHarvest(); toast('تم الحذف','ok');
+  }
+  function renderHarvest(){
+    var out=document.getElementById('hvList');
+    var summary=document.getElementById('hvSummary');
+    if(!out) return;
+    var list=getHarvest();
+    var totalQty=0,totalRev=0,totalCost=0;
+    list.forEach(function(h){
+      totalQty+=h.qty;
+      totalRev+=h.qty*h.price;
+      totalCost+=h.cost;
+    });
+    if(summary){
+      summary.innerHTML=
+        '<div class="stat"><b style="color:#ff9800">'+totalQty.toFixed(0)+'</b><span>إجمالي كغ</span></div>'+
+        '<div class="stat"><b style="color:'+((totalRev-totalCost)>=0?'#2e7d32':'#d32f2f')+'">'+money(totalRev-totalCost)+'</b><span>الربح (دج)</span></div>';
+    }
+    if(!list.length){ out.innerHTML='<div class="empty">لا توجد سجلات حصاد</div>'; return; }
+    var html='';
+    list.slice().sort(function(a,b){return String(b.date).localeCompare(String(a.date));}).forEach(function(h){
+      var rev=h.qty*h.price;
+      var profit=rev-h.cost;
+      var cls=profit>=0?'pos':'neg';
+      var realIdx=list.findIndex(function(x){return x.addedAt===h.addedAt;});
+      html+='<div class="harvest-item">';
+      html+='<div class="harvest-head"><span class="harvest-crop">🌾 '+esc(h.crop)+'</span><span class="harvest-qty">'+h.qty+' كغ</span></div>';
+      html+='<div class="harvest-info">📅 '+esc(fmtDate(h.date))+(h.price>0?' • 💰 '+money(h.price)+' دج/كغ':'')+(h.cost>0?' • 💸 '+money(h.cost)+' دج':'')+'</div>';
+      if(h.note) html+='<div class="harvest-info" style="color:var(--muted)">📝 '+esc(h.note)+'</div>';
+      if(h.price>0) html+='<div class="harvest-profit '+cls+'">'+(profit>=0?'+':'')+money(profit)+' دج (الربح)</div>';
+      html+='<div style="margin-top:8px;text-align:left"><button class="danger" data-hv-del="'+realIdx+'">حذف</button></div>';
+      html+='</div>';
+    });
+    out.innerHTML=html;
+  }
+  function buildHarvest(){
+    var main=document.querySelector('main'); if(!main||document.getElementById('harvest')) return;
+    var s=document.createElement('section'); s.id='harvest'; s.className='page';
+    s.innerHTML='<div class="card">'+
+      '<h2>🌾 سجل الحصاد</h2>'+
+      '<p class="small muted">تتبع كمية الحصاد، السعر، والربح الفعلي.</p>'+
+      '<div class="harvest-summary" id="hvSummary"></div>'+
+      '</div>'+
+      '<div class="card">'+
+      '<h3>➕ إضافة حصاد</h3>'+
+      '<label>المحصول</label>'+
+      '<input id="hvCrop" maxlength="60" placeholder="قمح، شعير، طماطم" inputmode="text">'+
+      '<label>التاريخ</label>'+
+      '<input id="hvDate" type="date">'+
+      '<label>الكمية (كغ)</label>'+
+      '<input id="hvQty" type="number" min="0" step="0.1" placeholder="0" inputmode="decimal">'+
+      '<label>سعر البيع (دج/كغ) — اختياري</label>'+
+      '<input id="hvPrice" type="number" min="0" step="0.01" placeholder="0" inputmode="decimal">'+
+      '<label>تكاليف (دج) — اختياري</label>'+
+      '<input id="hvCost" type="number" min="0" step="0.01" placeholder="0" inputmode="decimal">'+
+      '<label>ملاحظة (اختياري)</label>'+
+      '<input id="hvNote" maxlength="80" inputmode="text">'+
+      '<button class="btn" id="addHvBtn">💾 حفظ الحصاد</button>'+
+      '</div>'+
+      '<div class="card"><h3>📋 السجل</h3><div id="hvList"></div></div>';
+    main.appendChild(s);
+    var nav=document.querySelector('nav');
+    if(nav&&!nav.querySelector('[data-page="harvest"]')){
+      var b=document.createElement('button'); b.className='nav-btn'; b.setAttribute('data-page','harvest');
+      b.innerHTML='<span>🌾</span>حصاد'; nav.appendChild(b);
+      b.addEventListener('click',function(){
+        if(typeof showPage==='function') showPage('harvest');
+        var d=document.getElementById('hvDate'); if(d&&!d.value) d.value=today();
+        renderHarvest();
+      });
+    }
+    var qg=document.querySelector('#home .grid');
+    if(qg&&!document.querySelector('#home [data-page="harvest"]')){
+      var qb=document.createElement('button'); qb.className='btn2 nav-btn'; qb.setAttribute('data-page','harvest');
+      qb.textContent='🌾 حصاد'; qg.appendChild(qb);
+      qb.addEventListener('click',function(){
+        if(typeof showPage==='function') showPage('harvest');
+        var d=document.getElementById('hvDate'); if(d&&!d.value) d.value=today();
+        renderHarvest();
+      });
+    }
+    var btn=document.getElementById('addHvBtn'); if(btn) btn.addEventListener('click',addHarvest);
+  }
+  document.addEventListener('click',function(e){
+    var b=e.target.closest&&e.target.closest('[data-hv-del]');
+    if(!b) return;
+    delHarvest(Number(b.getAttribute('data-hv-del')));
+  });
+  window.__buildHarvest=buildHarvest; window.__renderHarvest=renderHarvest;
+})();
+
+/* تشغيل الثلاثة */
+(function(){
+  function initAll(){
+    try{ window.__buildBreed(); }catch(e){console.warn('Breed:',e);}
+    try{ window.__buildMix(); }catch(e){console.warn('Mix:',e);}
+    try{ window.__buildHarvest(); }catch(e){console.warn('Hv:',e);}
+    try{ window.__renderBreed(); }catch(e){}
+    try{ window.__renderHarvest(); }catch(e){}
+    setTimeout(function(){
+      try{ window.__renderBreed(); }catch(e){}
+      try{ window.__renderHarvest(); }catch(e){}
+    },1200);
+  }
+  if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',initAll);}
+  else{setTimeout(initAll,300);}
+})();
+</script>
 </body>
 </html>
