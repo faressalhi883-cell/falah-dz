@@ -2105,5 +2105,264 @@ body.dark-mode .feed-days{background:#2a2a3e!important;color:#e8e8f0}
   }
 })();
 </script>
+  <style>
+.med-item{background:var(--light);border-radius:12px;padding:12px;margin-bottom:10px;border-right:4px solid #2e7d32;position:relative}
+body.dark-mode .med-item{background:#2a2a3e!important}
+.med-item.expired{border-right-color:#d32f2f}
+.med-item.warning{border-right-color:#f57c00}
+.med-item.ok{border-right-color:#2e7d32}
+.med-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px}
+.med-name{font-weight:bold;color:var(--green);font-size:15px}
+.med-qty{font-size:13px;color:var(--text);font-weight:bold;background:rgba(255,255,255,.5);padding:2px 8px;border-radius:6px;white-space:nowrap}
+body.dark-mode .med-qty{background:rgba(0,0,0,.3)!important}
+.med-info{font-size:11px;color:var(--muted);margin-top:4px;display:flex;gap:10px;flex-wrap:wrap}
+.med-badge{display:inline-block;padding:3px 8px;border-radius:8px;font-size:11px;font-weight:bold;margin-top:8px}
+.med-badge.ok{background:#e8f5e9;color:#2e7d32}
+.med-badge.warn{background:#fff3e0;color:#e65100}
+.med-badge.exp{background:#ffebee;color:#c62828}
+body.dark-mode .med-badge.ok{background:#1a5a1a;color:#81c784}
+body.dark-mode .med-badge.warn{background:#5a3a1a;color:#ffb74d}
+body.dark-mode .med-badge.exp{background:#5a1a1a;color:#ef5350}
+.med-alert{padding:10px 12px;background:#fff3e0;border:1px solid #ffb74d;color:#e65100;border-radius:10px;margin-bottom:12px;font-size:13px;font-weight:bold;text-align:center}
+body.dark-mode .med-alert{background:#5a3a1a!important;color:#ffb74d!important;border-color:#8d6e63}
+.med-summary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px}
+.med-summary .stat{padding:8px}
+.med-summary .stat b{font-size:16px}
+.med-summary .stat span{font-size:10px}
+.med-actions{margin-top:8px;text-align:left}
+</style>
+
+<script>
+(function(){
+  var UNITS = ['جرعة','زجاجة','علبة','كيس','قرص','مل','كغ','لتر','وحدة'];
+
+  function getMedData(){
+    try{
+      if(!data.medStock) data.medStock = [];
+      return data.medStock;
+    }catch(e){return [];}
+  }
+
+  function daysUntil(dateStr){
+    if(!dateStr) return 99999;
+    var d = new Date(dateStr+'T00:00:00');
+    if(isNaN(d.getTime())) return 99999;
+    var diff = Math.floor((d - new Date()) / 86400000);
+    return diff;
+  }
+
+  function addMed(){
+    var name = document.getElementById('medName').value.trim();
+    var qty = parseFloat(document.getElementById('medQty').value) || 0;
+    var unit = document.getElementById('medUnit').value;
+    var price = parseFloat(document.getElementById('medPrice').value) || 0;
+    var buyDate = document.getElementById('medBuyDate').value || today();
+    var expDate = document.getElementById('medExpDate').value;
+
+    if(!name){ toast('اكتب اسم الدواء','err'); return; }
+    if(qty <= 0){ toast('اكتب كمية صحيحة','err'); return; }
+
+    getMedData().push({
+      name: name,
+      qty: qty,
+      unit: unit,
+      price: price,
+      buyDate: buyDate,
+      expDate: expDate,
+      addedAt: Date.now()
+    });
+    try{ save(); }catch(e){}
+
+    document.getElementById('medName').value = '';
+    document.getElementById('medQty').value = '';
+    document.getElementById('medPrice').value = '';
+    document.getElementById('medExpDate').value = '';
+    renderMed();
+    toast('تم إضافة الدواء','ok');
+  }
+
+  function delMed(idx){
+    if(!confirm('حذف هذا الدواء من المخزون؟')) return;
+    getMedData().splice(idx,1);
+    try{ save(); }catch(e){}
+    renderMed();
+    toast('تم الحذف','ok');
+  }
+
+  function renderMed(){
+    var out = document.getElementById('medList');
+    var alertBox = document.getElementById('medAlert');
+    var summary = document.getElementById('medSummary');
+    if(!out) return;
+
+    var items = getMedData();
+    var totalQty = 0, totalValue = 0;
+    var expiredCount = 0, warningCount = 0, okCount = 0;
+
+    items.forEach(function(it){
+      totalQty += it.qty;
+      totalValue += it.price;
+      var days = daysUntil(it.expDate);
+      if(!it.expDate){ okCount++; return; }
+      if(days < 0) expiredCount++;
+      else if(days <= 30) warningCount++;
+      else okCount++;
+    });
+
+    // Summary
+    if(summary){
+      summary.innerHTML = 
+        '<div class="stat"><b style="color:#8e24aa">'+items.length+'</b><span>أنواع</span></div>'+
+        '<div class="stat"><b style="color:#2e7d32">'+Math.round(totalQty)+'</b><span>إجمالي</span></div>'+
+        '<div class="stat"><b style="color:#d32f2f">'+money(totalValue)+'</b><span>قيمة (دج)</span></div>';
+    }
+
+    // Alert
+    if(alertBox){
+      var alertCount = expiredCount + warningCount;
+      if(alertCount > 0){
+        var msg = '';
+        if(expiredCount > 0) msg += '🔴 '+expiredCount+' منتهي';
+        if(warningCount > 0) msg += (msg?' • ':'')+'🟡 '+warningCount+' قريب الانتهاء';
+        alertBox.innerHTML = '⚠️ '+msg+' — يحتاج تجديد!';
+        alertBox.style.display = 'block';
+      } else {
+        alertBox.style.display = 'none';
+      }
+    }
+
+    // List
+    if(!items.length){
+      out.innerHTML = '<div class="empty">لا يوجد مخزون أدوية</div>';
+      return;
+    }
+
+    var html = '';
+    items.slice().sort(function(a,b){
+      return daysUntil(a.expDate) - daysUntil(b.expDate);
+    }).forEach(function(it){
+      var days = daysUntil(it.expDate);
+      var cls = 'ok', badge = '';
+      if(!it.expDate){
+        badge = '<span class="med-badge ok">📅 بدون تاريخ انتهاء</span>';
+      } else if(days < 0){
+        cls = 'expired';
+        badge = '<span class="med-badge exp">🔴 منتهي منذ '+Math.abs(days)+' يوم</span>';
+      } else if(days <= 30){
+        cls = 'warning';
+        badge = '<span class="med-badge warn">🟡 ينتهي بعد '+days+' يوم</span>';
+      } else {
+        badge = '<span class="med-badge ok">🟢 صالح ('+days+' يوم)</span>';
+      }
+
+      var realIdx = items.findIndex(function(x){return x.addedAt === it.addedAt;});
+
+      html += '<div class="med-item '+cls+'">';
+      html += '<div class="med-head">';
+      html += '<span class="med-name">💊 '+esc(it.name)+'</span>';
+      html += '<span class="med-qty">'+it.qty+' '+esc(it.unit)+'</span>';
+      html += '</div>';
+      html += '<div class="med-info">';
+      html += '<span>📅 شراء: '+esc(fmtDate(it.buyDate))+'</span>';
+      if(it.expDate) html += '<span>⏰ انتهاء: '+esc(fmtDate(it.expDate))+'</span>';
+      if(it.price > 0) html += '<span>💰 '+money(it.price)+' دج</span>';
+      html += '</div>';
+      html += badge;
+      html += '<div class="med-actions"><button class="danger" data-med-del="'+realIdx+'">حذف</button></div>';
+      html += '</div>';
+    });
+    out.innerHTML = html;
+  }
+
+  function buildUI(){
+    var main = document.querySelector('main');
+    if(!main || document.getElementById('medstock')) return;
+    var s = document.createElement('section');
+    s.id = 'medstock';
+    s.className = 'page';
+    var opts = '';
+    UNITS.forEach(function(u){ opts += '<option>'+u+'</option>'; });
+    s.innerHTML = 
+      '<div class="card">'+
+      '<h2>💊 مخزون الأدوية واللقاحات</h2>'+
+      '<p class="small muted">تتبع الأدوية، اللقاحات، وتواريخ انتهاء الصلاحية.</p>'+
+      '<div id="medAlert" class="med-alert" style="display:none"></div>'+
+      '<div class="med-summary" id="medSummary"></div>'+
+      '</div>'+
+      '<div class="card">'+
+      '<h3>➕ إضافة دواء للمخزون</h3>'+
+      '<label>اسم الدواء/اللقاح</label>'+
+      '<input id="medName" maxlength="60" placeholder="مثال: لقاح الجدري، مضاد حيوي" inputmode="text">'+
+      '<label>الكمية</label>'+
+      '<input id="medQty" type="number" min="0" step="0.1" placeholder="0" inputmode="decimal">'+
+      '<label>الوحدة</label>'+
+      '<select id="medUnit">'+opts+'</select>'+
+      '<label>السعر الإجمالي (دج) — اختياري</label>'+
+      '<input id="medPrice" type="number" min="0" step="0.01" placeholder="0" inputmode="decimal">'+
+      '<label>تاريخ الشراء</label>'+
+      '<input id="medBuyDate" type="date">'+
+      '<label>تاريخ انتهاء الصلاحية (اختياري)</label>'+
+      '<input id="medExpDate" type="date">'+
+      '<button class="btn" id="addMedBtn">💾 إضافة للمخزون</button>'+
+      '</div>'+
+      '<div class="card"><h3>📊 المخزون الحالي</h3><div id="medList"></div></div>';
+    main.appendChild(s);
+
+    var nav = document.querySelector('nav');
+    if(nav && !nav.querySelector('[data-page="medstock"]')){
+      var b = document.createElement('button');
+      b.className = 'nav-btn';
+      b.setAttribute('data-page', 'medstock');
+      b.innerHTML = '<span>💊</span>أدوية';
+      nav.appendChild(b);
+      b.addEventListener('click', function(){
+        if(typeof showPage === 'function') showPage('medstock');
+        var d = document.getElementById('medBuyDate');
+        if(d && !d.value) d.value = today();
+        renderMed();
+      });
+    }
+
+    var qg = document.querySelector('#home .grid');
+    if(qg && !document.querySelector('#home [data-page="medstock"]')){
+      var qb = document.createElement('button');
+      qb.className = 'btn2 nav-btn';
+      qb.setAttribute('data-page', 'medstock');
+      qb.textContent = '💊 أدوية';
+      qg.appendChild(qb);
+      qb.addEventListener('click', function(){
+        if(typeof showPage === 'function') showPage('medstock');
+        var d = document.getElementById('medBuyDate');
+        if(d && !d.value) d.value = today();
+        renderMed();
+      });
+    }
+
+    var addBtn = document.getElementById('addMedBtn');
+    if(addBtn) addBtn.addEventListener('click', addMed);
+  }
+
+  document.addEventListener('click', function(e){
+    var b = e.target.closest && e.target.closest('[data-med-del]');
+    if(!b) return;
+    delMed(Number(b.getAttribute('data-med-del')));
+  });
+
+  function init(){
+    buildUI();
+    var d = document.getElementById('medBuyDate');
+    if(d && !d.value) d.value = today();
+    renderMed();
+    setTimeout(renderMed, 1000);
+    setTimeout(renderMed, 2500);
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
 </body>
 </html>
