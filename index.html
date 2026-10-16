@@ -1609,5 +1609,247 @@ body.dark-mode .health-row .h-cost{color:#ef5350}
   }
 })();
 </script>
+  <style>
+.weight-animal-card{background:var(--light);border-radius:12px;padding:12px;margin-bottom:12px;border-right:4px solid #8e24aa}
+body.dark-mode .weight-animal-card{background:#2a2a3e!important}
+.weight-animal-name{font-weight:bold;color:var(--green);font-size:15px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.weight-chart{display:flex;align-items:flex-end;gap:3px;height:100px;padding:6px;background:rgba(255,255,255,.5);border-radius:8px;margin:8px 0;overflow-x:auto}
+body.dark-mode .weight-chart{background:rgba(0,0,0,.25)!important}
+.weight-bar{flex:0 0 auto;min-width:24px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
+.weight-bar-fill{width:20px;background:linear-gradient(180deg,#8e24aa,#6a1b9a);border-radius:4px 4px 0 0;min-height:2px;position:relative;transition:height .4s}
+.weight-bar-fill::after{content:attr(data-w);position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:9px;color:var(--green);font-weight:bold;white-space:nowrap}
+.weight-bar-date{font-size:9px;color:var(--muted);margin-top:3px;white-space:nowrap}
+.weight-stats{display:flex;gap:12px;font-size:12px;color:var(--text);margin-top:8px;flex-wrap:wrap}
+.weight-stats span{background:rgba(255,255,255,.6);padding:4px 8px;border-radius:6px}
+body.dark-mode .weight-stats span{background:rgba(0,0,0,.3)!important}
+.weight-change.pos{color:#2e7d32;font-weight:bold}
+.weight-change.neg{color:#d32f2f;font-weight:bold}
+body.dark-mode .weight-change.pos{color:#81c784!important}
+body.dark-mode .weight-change.neg{color:#ef5350!important}
+.weight-log-list{margin-top:8px;max-height:150px;overflow-y:auto}
+.weight-log-row{display:flex;justify-content:space-between;align-items:center;padding:5px 8px;font-size:12px;border-bottom:1px solid var(--border)}
+.weight-log-row:last-child{border-bottom:none}
+body.dark-mode .weight-log-row{border-color:#3a3a4e!important}
+.weight-log-row button{background:#ffebee;color:#b71c1c;border:1px solid #ef9a9a;padding:2px 8px;font-size:10px;border-radius:6px;cursor:pointer;font-family:inherit}
+body.dark-mode .weight-log-row button{background:#3a1a1a;color:#ef5350;border-color:#5a2a2a}
+</style>
+
+<script>
+(function(){
+  function getWeightData(){
+    try{
+      if(!data.weights) data.weights = [];
+      return data.weights;
+    }catch(e){return [];}
+  }
+
+  function addWeightRecord(){
+    var animal = document.getElementById('weightAnimal').value.trim();
+    var date = document.getElementById('weightDate').value;
+    var weight = parseFloat(document.getElementById('weightKg').value) || 0;
+    var note = document.getElementById('weightNote').value.trim();
+
+    if(!animal){ toast('اختر الحيوان','err'); return; }
+    if(weight <= 0){ toast('اكتب وزنًا صحيحًا','err'); return; }
+    if(!date){ date = today(); }
+
+    getWeightData().push({
+      animal: animal,
+      date: date,
+      kg: weight,
+      note: note
+    });
+    try{ save(); }catch(e){}
+
+    document.getElementById('weightKg').value = '';
+    document.getElementById('weightNote').value = '';
+    renderWeights();
+    toast('تم حفظ الوزن','ok');
+  }
+
+  function delWeightRecord(animal, idx){
+    if(!confirm('حذف هذا الوزن؟')) return;
+    var all = getWeightData();
+    var count = 0;
+    for(var i=0;i<all.length;i++){
+      if(all[i].animal === animal){
+        if(count === idx){ all.splice(i,1); break; }
+        count++;
+      }
+    }
+    try{ save(); }catch(e){}
+    renderWeights();
+    toast('تم الحذف','ok');
+  }
+
+  function refreshWeightAnimalList(){
+    var sel = document.getElementById('weightAnimal');
+    if(!sel) return;
+    var cur = sel.value;
+    var opts = '<option value="">-- اختر الحيوان --</option>';
+    try{
+      (data.animals||[]).forEach(function(a){
+        var label = a.name + (a.type ? ' ('+a.type+')' : '');
+        opts += '<option value="'+esc(label)+'">'+esc(label)+'</option>';
+      });
+    }catch(e){}
+    sel.innerHTML = opts;
+    if(cur) sel.value = cur;
+  }
+
+  function renderWeights(){
+    var out = document.getElementById('weightsList');
+    if(!out) return;
+    var all = getWeightData();
+    if(!all.length){
+      out.innerHTML = '<div class="empty">لا توجد أوزان مسجلة بعد</div>';
+      return;
+    }
+
+    // group by animal
+    var groups = {};
+    all.forEach(function(r){
+      if(!groups[r.animal]) groups[r.animal] = [];
+      groups[r.animal].push(r);
+    });
+
+    var html = '';
+    Object.keys(groups).forEach(function(name){
+      var records = groups[name].slice().sort(function(a,b){
+        return String(a.date).localeCompare(String(b.date));
+      });
+
+      var maxKg = 1;
+      records.forEach(function(r){ if(r.kg > maxKg) maxKg = r.kg; });
+
+      var first = records[0].kg;
+      var last = records[records.length-1].kg;
+      var diff = last - first;
+
+      html += '<div class="weight-animal-card">';
+      html += '<div class="weight-animal-name">🐑 '+esc(name)+'<span style="font-size:11px;color:var(--muted)">'+records.length+' سجل</span></div>';
+
+      // chart
+      html += '<div class="weight-chart">';
+      records.forEach(function(r){
+        var h = Math.max(6, Math.round((r.kg/maxKg)*100));
+        var day = String(r.date).slice(8,10);
+        var mo = String(r.date).slice(5,7);
+        html += '<div class="weight-bar">';
+        html += '<div class="weight-bar-fill" style="height:'+h+'%" data-w="'+r.kg+'"></div>';
+        html += '<div class="weight-bar-date">'+day+'/'+mo+'</div>';
+        html += '</div>';
+      });
+      html += '</div>';
+
+      // stats
+      html += '<div class="weight-stats">';
+      html += '<span>آخر وزن: <b>'+last+' كغ</b></span>';
+      if(records.length > 1){
+        var cls = diff >= 0 ? 'pos' : 'neg';
+        var arrow = diff >= 0 ? '▲' : '▼';
+        html += '<span>التغير: <span class="weight-change '+cls+'">'+arrow+' '+(diff>=0?'+':'')+diff.toFixed(1)+' كغ</span></span>';
+      }
+      html += '</div>';
+
+      // log
+      html += '<div class="weight-log-list">';
+      records.slice().reverse().forEach(function(r, idx){
+        var realIdx = records.length - 1 - idx;
+        html += '<div class="weight-log-row">';
+        html += '<span>'+esc(fmtDate(r.date))+' — <b>'+r.kg+' كغ</b>'+(r.note?' • '+esc(r.note):'')+'</span>';
+        html += '<button data-weight-del="'+esc(name)+'" data-weight-idx="'+realIdx+'">حذف</button>';
+        html += '</div>';
+      });
+      html += '</div>';
+
+      html += '</div>';
+    });
+    out.innerHTML = html;
+  }
+
+  function buildUI(){
+    var main = document.querySelector('main');
+    if(!main || document.getElementById('weights')) return;
+    var s = document.createElement('section');
+    s.id = 'weights';
+    s.className = 'page';
+    s.innerHTML = '<div class="card">'+
+      '<h2>⚖️ سجل الأوزان</h2>'+
+      '<p class="small muted">تابع نمو حيواناتك بمرور الوقت مع رسم بياني مرئي.</p>'+
+      '<label>الحيوان</label>'+
+      '<select id="weightAnimal"><option value="">-- اختر الحيوان --</option></select>'+
+      '<label>التاريخ</label>'+
+      '<input id="weightDate" type="date">'+
+      '<label>الوزن (كغ)</label>'+
+      '<input id="weightKg" type="number" min="0" step="0.1" placeholder="0" inputmode="decimal">'+
+      '<label>ملاحظة (اختياري)</label>'+
+      '<input id="weightNote" maxlength="80" placeholder="مثال: بعد التسمين" inputmode="text">'+
+      '<button class="btn" id="addWeightBtn">💾 حفظ الوزن</button>'+
+      '</div>'+
+      '<div class="card"><h3>تطور أوزان الحيوانات</h3><div id="weightsList"></div></div>';
+    main.appendChild(s);
+
+    var nav = document.querySelector('nav');
+    if(nav && !nav.querySelector('[data-page="weights"]')){
+      var b = document.createElement('button');
+      b.className = 'nav-btn';
+      b.setAttribute('data-page', 'weights');
+      b.innerHTML = '<span>⚖️</span>أوزان';
+      nav.appendChild(b);
+      b.addEventListener('click', function(){
+        if(typeof showPage === 'function') showPage('weights');
+        refreshWeightAnimalList();
+        var wd = document.getElementById('weightDate');
+        if(wd && !wd.value) wd.value = today();
+        renderWeights();
+      });
+    }
+
+    var quickGrid = document.querySelector('#home .grid');
+    if(quickGrid && !document.querySelector('#home [data-page="weights"]')){
+      var qb = document.createElement('button');
+      qb.className = 'btn2 nav-btn';
+      qb.setAttribute('data-page', 'weights');
+      qb.textContent = '⚖️ سجل أوزان';
+      quickGrid.appendChild(qb);
+      qb.addEventListener('click', function(){
+        if(typeof showPage === 'function') showPage('weights');
+        refreshWeightAnimalList();
+        var wd = document.getElementById('weightDate');
+        if(wd && !wd.value) wd.value = today();
+        renderWeights();
+      });
+    }
+
+    var addBtn = document.getElementById('addWeightBtn');
+    if(addBtn) addBtn.addEventListener('click', addWeightRecord);
+  }
+
+  document.addEventListener('click', function(e){
+    var b = e.target.closest && e.target.closest('[data-weight-del]');
+    if(!b) return;
+    var animal = b.getAttribute('data-weight-del');
+    var idx = Number(b.getAttribute('data-weight-idx'));
+    delWeightRecord(animal, idx);
+  });
+
+  function init(){
+    buildUI();
+    refreshWeightAnimalList();
+    var wd = document.getElementById('weightDate');
+    if(wd && !wd.value) wd.value = today();
+    renderWeights();
+    setTimeout(function(){ refreshWeightAnimalList(); renderWeights(); }, 1000);
+    setTimeout(function(){ refreshWeightAnimalList(); }, 2500);
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
 </body>
 </html>
