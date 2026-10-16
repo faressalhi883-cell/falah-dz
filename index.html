@@ -2364,5 +2364,300 @@ body.dark-mode .med-alert{background:#5a3a1a!important;color:#ffb74d!important;b
   }
 })();
 </script>
+  <style>
+.dairy-summary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px}
+.dairy-summary .stat{padding:8px}
+.dairy-summary .stat b{font-size:16px}
+.dairy-summary .stat span{font-size:10px}
+.dairy-chart{display:flex;justify-content:space-between;align-items:flex-end;height:140px;padding:10px 4px;background:var(--light);border-radius:12px;margin:10px 0;gap:4px}
+body.dark-mode .dairy-chart{background:#2a2a3e!important}
+.dairy-col{flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end}
+.dairy-bar{width:70%;background:linear-gradient(180deg,#8e24aa,#6a1b9a);border-radius:4px 4px 0 0;min-height:2px;position:relative;transition:height .5s}
+.dairy-bar::after{content:attr(data-l);position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:9px;color:var(--green);font-weight:bold;white-space:nowrap}
+.dairy-day{font-size:10px;color:var(--muted);margin-top:4px;text-align:center}
+.dairy-log{background:var(--light);border-radius:10px;padding:10px;margin-bottom:8px;border-right:4px solid #8e24aa;display:flex;justify-content:space-between;align-items:center;gap:8px}
+body.dark-mode .dairy-log{background:#2a2a3e!important}
+.dairy-log .d-info{flex:1}
+.dairy-log .d-title{font-weight:bold;color:var(--green);font-size:14px}
+.dairy-log .d-meta{font-size:11px;color:var(--muted);margin-top:3px}
+.dairy-log .d-qty{background:linear-gradient(135deg,#8e24aa,#6a1b9a);color:#fff;padding:6px 10px;border-radius:8px;font-weight:bold;font-size:13px;white-space:nowrap}
+.milk-icon{font-size:11px;color:var(--muted);margin-left:6px}
+</style>
+
+<script>
+(function(){
+  var TIMES = ['صباح','مساء','ظهر','ليل'];
+
+  function getDairyData(){
+    try{
+      if(!data.dairy) data.dairy = [];
+      return data.dairy;
+    }catch(e){return [];}
+  }
+
+  function getMilkPrice(){
+    try{
+      if(data.dairySettings && data.dairySettings.pricePerLiter){
+        return data.dairySettings.pricePerLiter;
+      }
+    }catch(e){}
+    return 50; // سعر افتراضي: 50 دج/لتر
+  }
+
+  function setMilkPrice(val){
+    try{
+      if(!data.dairySettings) data.dairySettings = {};
+      data.dairySettings.pricePerLiter = val;
+    }catch(e){}
+  }
+
+  function addDairyRecord(){
+    var animal = document.getElementById('dairyAnimal').value.trim();
+    var date = document.getElementById('dairyDate').value || today();
+    var qty = parseFloat(document.getElementById('dairyQty').value) || 0;
+    var time = document.getElementById('dairyTime').value;
+    var note = document.getElementById('dairyNote').value.trim();
+
+    if(!animal){ toast('اختر الحيوان','err'); return; }
+    if(qty <= 0){ toast('اكتب كمية صحيحة','err'); return; }
+
+    getDairyData().push({
+      animal: animal,
+      date: date,
+      qty: qty,
+      time: time,
+      note: note,
+      addedAt: Date.now()
+    });
+    try{ save(); }catch(e){}
+
+    document.getElementById('dairyQty').value = '';
+    document.getElementById('dairyNote').value = '';
+    renderDairy();
+    toast('تم حفظ الإنتاج','ok');
+  }
+
+  function delDairyRecord(idx){
+    if(!confirm('حذف هذا السجل؟')) return;
+    getDairyData().splice(idx,1);
+    try{ save(); }catch(e){}
+    renderDairy();
+    toast('تم الحذف','ok');
+  }
+
+  function saveMilkPrice(){
+    var val = parseFloat(document.getElementById('milkPriceInput').value) || 50;
+    setMilkPrice(val);
+    try{ save(); }catch(e){}
+    renderDairy();
+    toast('تم تحديث سعر اللتر','ok');
+  }
+
+  function refreshDairyAnimals(){
+    var sel = document.getElementById('dairyAnimal');
+    if(!sel) return;
+    var cur = sel.value;
+    var opts = '<option value="">-- اختر الحيوان --</option>';
+    try{
+      (data.animals||[]).forEach(function(a){
+        // نظهر فقط الإناث القابلة للحلب أو أي حيوان
+        var label = a.name + (a.type ? ' ('+a.type+')' : '');
+        opts += '<option value="'+esc(label)+'">'+esc(label)+'</option>';
+      });
+    }catch(e){}
+    sel.innerHTML = opts;
+    if(cur) sel.value = cur;
+  }
+
+  function renderDairy(){
+    var out = document.getElementById('dairyList');
+    var summary = document.getElementById('dairySummary');
+    var chart = document.getElementById('dairyChart');
+    if(!out) return;
+
+    var items = getDairyData();
+    var price = getMilkPrice();
+
+    // إجمالي
+    var totalAll = 0;
+    items.forEach(function(it){ totalAll += it.qty; });
+
+    // هذا الشهر
+    var now = new Date();
+    var monthKey = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+    var monthTotal = 0;
+    items.forEach(function(it){
+      if(String(it.date).slice(0,7) === monthKey) monthTotal += it.qty;
+    });
+
+    // اليوم
+    var todayKey = today();
+    var todayTotal = 0;
+    items.forEach(function(it){
+      if(it.date === todayKey) todayTotal += it.qty;
+    });
+
+    if(summary){
+      summary.innerHTML = 
+        '<div class="stat"><b style="color:#8e24aa">'+monthTotal.toFixed(1)+'</b><span>لتر هذا الشهر</span></div>'+
+        '<div class="stat"><b style="color:#2e7d32">'+todayTotal.toFixed(1)+'</b><span>لتر اليوم</span></div>'+
+        '<div class="stat"><b style="color:#6a1b9a">'+money(monthTotal*price)+'</b><span>دج (الشهر)</span></div>';
+    }
+
+    // رسم بياني - آخر 7 أيام
+    if(chart){
+      var days = [];
+      for(var i=6;i>=0;i--){
+        var d = new Date();
+        d.setDate(d.getDate() - i);
+        var key = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+        var dayName;
+        try{ dayName = d.toLocaleDateString('ar-DZ',{weekday:'short'}); }catch(e){ dayName = d.toLocaleDateString('ar',{weekday:'short'}); }
+        days.push({key:key, name:dayName, total:0});
+      }
+      items.forEach(function(it){
+        for(var j=0;j<days.length;j++){
+          if(days[j].key === it.date) days[j].total += it.qty;
+        }
+      });
+      var maxT = 1;
+      days.forEach(function(d){ if(d.total>maxT) maxT=d.total; });
+      var html = '';
+      days.forEach(function(d){
+        var h = d.total > 0 ? Math.max(5, Math.round((d.total/maxT)*100)) : 0;
+        html += '<div class="dairy-col">';
+        html += '<div class="dairy-bar" style="height:'+h+'%" data-l="'+(d.total>0?d.total.toFixed(0):'')+'"></div>';
+        html += '<div class="dairy-day">'+esc(d.name)+'</div>';
+        html += '</div>';
+      });
+      chart.innerHTML = html;
+    }
+
+    // السجل
+    if(!items.length){
+      out.innerHTML = '<div class="empty">لا توجد سجلات حلب بعد</div>';
+      return;
+    }
+
+    var html = '';
+    items.slice().sort(function(a,b){
+      if(b.date !== a.date) return String(b.date).localeCompare(String(a.date));
+      return (b.addedAt||0) - (a.addedAt||0);
+    }).slice(0, 50).forEach(function(it){
+      var realIdx = items.findIndex(function(x){return x.addedAt === it.addedAt;});
+      html += '<div class="dairy-log">';
+      html += '<div class="d-info">';
+      html += '<div class="d-title">🐄 '+esc(it.animal)+'</div>';
+      html += '<div class="d-meta">📅 '+esc(fmtDate(it.date))+' • 🕐 '+esc(it.time)+(it.note?' • '+esc(it.note):'')+'</div>';
+      html += '<div style="margin-top:6px"><button class="danger" data-dairy-del="'+realIdx+'">حذف</button></div>';
+      html += '</div>';
+      html += '<div class="d-qty">'+it.qty+' لتر</div>';
+      html += '</div>';
+    });
+    out.innerHTML = html;
+  }
+
+  function buildUI(){
+    var main = document.querySelector('main');
+    if(!main || document.getElementById('dairy')) return;
+    var s = document.createElement('section');
+    s.id = 'dairy';
+    s.className = 'page';
+    var opts = '';
+    TIMES.forEach(function(t){ opts += '<option>'+t+'</option>'; });
+    s.innerHTML = 
+      '<div class="card">'+
+      '<h2>🐄 إدارة الألبان</h2>'+
+      '<p class="small muted">تتبع إنتاج الحليب اليومي وقيمته المالية.</p>'+
+      '<div class="dairy-summary" id="dairySummary"></div>'+
+      '<label>سعر اللتر (دج)</label>'+
+      '<div class="row">'+
+      '<input id="milkPriceInput" type="number" min="1" step="1" value="'+getMilkPrice()+'" inputmode="decimal">'+
+      '<button id="saveMilkPriceBtn" class="btn btn-auto">💾 حفظ السعر</button>'+
+      '</div>'+
+      '</div>'+
+      '<div class="card">'+
+      '<h3>📊 آخر 7 أيام</h3>'+
+      '<div class="dairy-chart" id="dairyChart"></div>'+
+      '</div>'+
+      '<div class="card">'+
+      '<h3>➕ تسجيل إنتاج جديد</h3>'+
+      '<label>الحيوان</label>'+
+      '<select id="dairyAnimal"><option value="">-- اختر الحيوان --</option></select>'+
+      '<label>التاريخ</label>'+
+      '<input id="dairyDate" type="date">'+
+      '<label>الكمية (لتر)</label>'+
+      '<input id="dairyQty" type="number" min="0" step="0.1" placeholder="0" inputmode="decimal">'+
+      '<label>الوقت</label>'+
+      '<select id="dairyTime">'+opts+'</select>'+
+      '<label>ملاحظة (اختياري)</label>'+
+      '<input id="dairyNote" maxlength="80" placeholder="مثال: حليب صباحي" inputmode="text">'+
+      '<button class="btn" id="addDairyBtn">💾 حفظ الإنتاج</button>'+
+      '</div>'+
+      '<div class="card"><h3>📋 سجل الحلب</h3><div id="dairyList"></div></div>';
+    main.appendChild(s);
+
+    var nav = document.querySelector('nav');
+    if(nav && !nav.querySelector('[data-page="dairy"]')){
+      var b = document.createElement('button');
+      b.className = 'nav-btn';
+      b.setAttribute('data-page', 'dairy');
+      b.innerHTML = '<span>🐄</span>ألبان';
+      nav.appendChild(b);
+      b.addEventListener('click', function(){
+        if(typeof showPage === 'function') showPage('dairy');
+        refreshDairyAnimals();
+        var d = document.getElementById('dairyDate');
+        if(d && !d.value) d.value = today();
+        renderDairy();
+      });
+    }
+
+    var qg = document.querySelector('#home .grid');
+    if(qg && !document.querySelector('#home [data-page="dairy"]')){
+      var qb = document.createElement('button');
+      qb.className = 'btn2 nav-btn';
+      qb.setAttribute('data-page', 'dairy');
+      qb.textContent = '🐄 ألبان';
+      qg.appendChild(qb);
+      qb.addEventListener('click', function(){
+        if(typeof showPage === 'function') showPage('dairy');
+        refreshDairyAnimals();
+        var d = document.getElementById('dairyDate');
+        if(d && !d.value) d.value = today();
+        renderDairy();
+      });
+    }
+
+    var addBtn = document.getElementById('addDairyBtn');
+    if(addBtn) addBtn.addEventListener('click', addDairyRecord);
+
+    var priceBtn = document.getElementById('saveMilkPriceBtn');
+    if(priceBtn) priceBtn.addEventListener('click', saveMilkPrice);
+  }
+
+  document.addEventListener('click', function(e){
+    var b = e.target.closest && e.target.closest('[data-dairy-del]');
+    if(!b) return;
+    delDairyRecord(Number(b.getAttribute('data-dairy-del')));
+  });
+
+  function init(){
+    buildUI();
+    refreshDairyAnimals();
+    var d = document.getElementById('dairyDate');
+    if(d && !d.value) d.value = today();
+    renderDairy();
+    setTimeout(function(){ refreshDairyAnimals(); renderDairy(); }, 1000);
+    setTimeout(function(){ refreshDairyAnimals(); }, 2500);
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
 </body>
 </html>
