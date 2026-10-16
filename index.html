@@ -1202,5 +1202,201 @@ body.dark-mode #hisnOut .dhikr{background:#2a2a3e!important;border-color:#3a3a4e
   setTimeout(hideSplash,2800);
 })();
 </script>
+  <style>
+.chart-legend{display:flex;gap:16px;font-size:12px;margin:8px 0;align-items:center}
+.chart-legend span{display:inline-flex;align-items:center;gap:6px}
+.chart-legend span::before{content:'';width:12px;height:12px;border-radius:3px;display:inline-block}
+.chart-legend .lg-sales::before{background:#8e24aa}
+.chart-legend .lg-expenses::before{background:#2e7d32}
+.chart-container{display:flex;justify-content:space-between;align-items:flex-end;height:180px;padding:10px 4px;background:var(--light);border-radius:12px;margin-top:10px;gap:4px}
+.chart-col{flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end}
+.chart-bars{display:flex;gap:2px;align-items:flex-end;height:calc(100% - 22px);width:100%;justify-content:center}
+.chart-bar{width:42%;min-height:2px;border-radius:3px 3px 0 0;transition:height .5s}
+.chart-bar.sales{background:#8e24aa}
+.chart-bar.expenses{background:#2e7d32}
+.chart-month{font-size:10px;color:var(--muted);margin-top:4px;text-align:center}
+.hbar-row{display:flex;align-items:center;gap:8px;margin:6px 0}
+.hbar-label{flex:0 0 80px;font-size:12px;color:var(--text);text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hbar-track{flex:1;background:var(--light);border-radius:8px;height:22px;overflow:hidden;position:relative}
+.hbar-fill{height:100%;background:#8e24aa;border-radius:8px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;color:#fff;font-size:11px;font-weight:bold;min-width:32px;transition:width .5s;box-sizing:border-box}
+.hbar-fill.pos{background:#2e7d32}
+.hbar-fill.neg{background:#d32f2f}
+body.dark-mode .chart-container{background:#2a2a3e!important}
+body.dark-mode .hbar-track{background:#2a2a3e!important}
+body.dark-mode .hbar-label{color:#e8e8f0!important}
+</style>
+
+<script>
+(function(){
+  function calcMonthlyStats(){
+    var now = new Date();
+    var months = [];
+    for(var i=5;i>=0;i--){
+      var d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+      var key = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+      var label;
+      try{ label = d.toLocaleDateString('ar-DZ',{month:'short'}); }catch(e){ label = d.toLocaleDateString('ar',{month:'short'}); }
+      months.push({key:key, label:label, sales:0, expenses:0});
+    }
+    function addTo(key, amount, field){
+      for(var j=0;j<months.length;j++){
+        if(months[j].key===key){ months[j][field] += amount; return; }
+      }
+    }
+    try{
+      (data.sales||[]).forEach(function(s){
+        var d = safeDate(s.date); if(!d) return;
+        addTo(d.slice(0,7), safeNumber(s.amount), 'sales');
+      });
+      (data.expenses||[]).forEach(function(e){
+        var d = safeDate(e.date); if(!d) return;
+        addTo(d.slice(0,7), safeNumber(e.amount), 'expenses');
+      });
+    }catch(e){}
+    return months;
+  }
+
+  function renderCharts(){
+    var out = document.getElementById('chartsBody');
+    if(!out) return;
+    var sales = 0, expenses = 0;
+    try{
+      (data.sales||[]).forEach(function(x){ sales += safeNumber(x.amount); });
+      (data.expenses||[]).forEach(function(x){ expenses += safeNumber(x.amount); });
+    }catch(e){}
+    var profit = sales - expenses;
+    var html = '';
+    
+    html += '<div class="grid" style="margin-bottom:12px">';
+    html += '<div class="stat"><b style="color:#8e24aa">'+money(sales)+'</b><span>إجمالي المبيعات (دج)</span></div>';
+    html += '<div class="stat"><b style="color:#d32f2f">'+money(expenses)+'</b><span>إجمالي المصاريف (دج)</span></div>';
+    html += '</div>';
+    html += '<div class="stat" style="margin-bottom:14px"><b style="color:'+(profit>=0?'#2e7d32':'#d32f2f')+'">'+money(profit)+'</b><span>الربح الإجمالي (دج)</span></div>';
+    
+    var months = calcMonthlyStats();
+    var maxVal = 1;
+    months.forEach(function(m){
+      if(m.sales > maxVal) maxVal = m.sales;
+      if(m.expenses > maxVal) maxVal = m.expenses;
+    });
+    
+    html += '<h3>المبيعات والمصاريف — آخر 6 أشهر</h3>';
+    html += '<div class="chart-legend"><span class="lg-sales">مبيعات</span><span class="lg-expenses">مصاريف</span></div>';
+    html += '<div class="chart-container">';
+    months.forEach(function(m){
+      var hS = m.sales>0 ? Math.max(3, Math.round((m.sales/maxVal)*100)) : 0;
+      var hE = m.expenses>0 ? Math.max(3, Math.round((m.expenses/maxVal)*100)) : 0;
+      html += '<div class="chart-col">';
+      html += '<div class="chart-bars">';
+      html += '<div class="chart-bar sales" style="height:'+hS+'%"></div>';
+      html += '<div class="chart-bar expenses" style="height:'+hE+'%"></div>';
+      html += '</div>';
+      html += '<div class="chart-month">'+esc(m.label)+'</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+    
+    var types = {};
+    try{
+      (data.animals||[]).forEach(function(a){
+        var t = a.type || 'غير محدد';
+        types[t] = (types[t]||0) + 1;
+      });
+    }catch(e){}
+    var typeKeys = Object.keys(types);
+    if(typeKeys.length){
+      var maxC = 1;
+      typeKeys.forEach(function(k){ if(types[k] > maxC) maxC = types[k]; });
+      html += '<h3 style="margin-top:18px">الحيوانات حسب النوع</h3>';
+      typeKeys.forEach(function(k){
+        var w = Math.max(10, Math.round((types[k]/maxC)*100));
+        html += '<div class="hbar-row"><div class="hbar-label">'+esc(k)+'</div><div class="hbar-track"><div class="hbar-fill" style="width:'+w+'%">'+types[k]+'</div></div></div>';
+      });
+    }
+    
+    try{
+      if(data.crops && data.crops.length){
+        var cropProfits = data.crops.map(function(c){
+          var calc = calcCrop(c);
+          return {name: c.crop || 'محصول', profit: calc.profit};
+        });
+        var maxP = 1;
+        cropProfits.forEach(function(c){ if(Math.abs(c.profit)>maxP) maxP=Math.abs(c.profit); });
+        html += '<h3 style="margin-top:18px">أرباح المحاصيل (دج)</h3>';
+        cropProfits.forEach(function(c){
+          var isPos = c.profit >= 0;
+          var w = Math.max(22, Math.round((Math.abs(c.profit)/maxP)*100));
+          var cls = isPos ? 'hbar-fill pos' : 'hbar-fill neg';
+          html += '<div class="hbar-row"><div class="hbar-label">'+esc(c.name)+'</div><div class="hbar-track"><div class="'+cls+'" style="width:'+w+'%">'+(isPos?'+':'')+money(c.profit)+'</div></div></div>';
+        });
+      }
+    }catch(e){}
+    
+    out.innerHTML = html;
+  }
+
+  function buildUI(){
+    var main = document.querySelector('main');
+    if(!main || document.getElementById('reports')) return;
+    var s = document.createElement('section');
+    s.id = 'reports';
+    s.className = 'page';
+    s.innerHTML = '<div class="card">'+
+      '<h2>📊 التقارير والرسوم البيانية</h2>'+
+      '<p class="small muted">عرض بصري لبياناتك: المبيعات، المصاريف، الأرباح، والحيوانات.</p>'+
+      '<div id="chartsBody"></div>'+
+      '</div>';
+    main.appendChild(s);
+    
+    var nav = document.querySelector('nav');
+    if(nav && !nav.querySelector('[data-page="reports"]')){
+      var b = document.createElement('button');
+      b.className = 'nav-btn';
+      b.setAttribute('data-page', 'reports');
+      b.innerHTML = '<span>📊</span>تقارير';
+      nav.appendChild(b);
+      b.addEventListener('click', function(){
+        if(typeof showPage === 'function') showPage('reports');
+        setTimeout(renderCharts, 50);
+      });
+    }
+    
+    var quickGrid = document.querySelector('#home .grid');
+    if(quickGrid && !document.querySelector('#home [data-page="reports"]')){
+      var qb = document.createElement('button');
+      qb.className = 'btn2 nav-btn';
+      qb.setAttribute('data-page', 'reports');
+      qb.textContent = '📊 تقارير';
+      quickGrid.appendChild(qb);
+      qb.addEventListener('click', function(){
+        if(typeof showPage === 'function') showPage('reports');
+        setTimeout(renderCharts, 50);
+      });
+    }
+  }
+
+  function watchReports(){
+    var rp = document.getElementById('reports');
+    if(!rp || typeof MutationObserver === 'undefined') return;
+    new MutationObserver(function(){
+      if(rp.classList.contains('active')) renderCharts();
+    }).observe(rp, {attributes:true, attributeFilter:['class']});
+  }
+
+  function init(){
+    buildUI();
+    watchReports();
+    renderCharts();
+    setTimeout(renderCharts, 800);
+    setTimeout(renderCharts, 2000);
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
 </body>
 </html>
