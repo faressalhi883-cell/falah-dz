@@ -1851,5 +1851,259 @@ body.dark-mode .weight-log-row button{background:#3a1a1a;color:#ef5350;border-co
   }
 })();
 </script>
+  <style>
+.feed-item{background:var(--light);border-radius:12px;padding:12px;margin-bottom:10px;border-right:4px solid #8e24aa}
+body.dark-mode .feed-item{background:#2a2a3e!important}
+.feed-item-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.feed-item-name{font-weight:bold;color:var(--green);font-size:15px}
+.feed-item-qty{font-size:13px;color:var(--text);font-weight:bold}
+.feed-item-info{font-size:11px;color:var(--muted);margin-top:4px}
+.feed-bar{height:8px;background:rgba(0,0,0,.08);border-radius:4px;overflow:hidden;margin-top:8px}
+body.dark-mode .feed-bar{background:rgba(255,255,255,.1)!important}
+.feed-bar-fill{height:100%;background:linear-gradient(90deg,#8e24aa,#6a1b9a);border-radius:4px;transition:width .5s}
+.feed-bar-fill.low{background:linear-gradient(90deg,#f44336,#d32f2f)}
+.feed-bar-fill.mid{background:linear-gradient(90deg,#ff9800,#f57c00)}
+.feed-summary{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.feed-summary .stat b{font-size:17px}
+.calc-row{display:flex;justify-content:space-between;padding:8px 10px;background:var(--light);border-radius:8px;margin-bottom:6px;font-size:13px;align-items:center}
+body.dark-mode .calc-row{background:#2a2a3e!important}
+.calc-row b{color:var(--green)}
+.calc-total{background:linear-gradient(135deg,#6a1b9a,#2e7d32);color:#fff;padding:12px;border-radius:12px;text-align:center;font-weight:bold;font-size:16px;margin-top:10px}
+.calc-total span{display:block;font-size:12px;opacity:.9;margin-top:4px;font-weight:normal}
+.feed-days{font-size:13px;color:var(--text);text-align:center;padding:10px;background:var(--light);border-radius:10px;margin-top:10px}
+body.dark-mode .feed-days{background:#2a2a3e!important;color:#e8e8f0}
+.feed-days b{color:var(--green);font-size:18px}
+.feed-days.danger b{color:#d32f2f}
+.feed-days.warn b{color:#f57c00}
+</style>
+
+<script>
+(function(){
+  // الاحتياج اليومي لكل نوع حيوان (كغ)
+  var DAILY_NEEDS = {
+    'خروف': 1.5,
+    'ماعز': 1.0,
+    'بقرة': 8.0,
+    'عجل': 4.0,
+    'حصان': 6.0
+  };
+
+  function getFeedData(){
+    try{
+      if(!data.feedStock) data.feedStock = [];
+      return data.feedStock;
+    }catch(e){return [];}
+  }
+
+  function addFeedStock(){
+    var type = document.getElementById('stockType').value.trim();
+    var qty = parseFloat(document.getElementById('stockQty').value) || 0;
+    var price = parseFloat(document.getElementById('stockPrice').value) || 0;
+    var date = document.getElementById('stockDate').value || today();
+    var supplier = document.getElementById('stockSupplier').value.trim();
+
+    if(!type){ toast('اكتب نوع العلف','err'); return; }
+    if(qty <= 0){ toast('اكتب كمية صحيحة','err'); return; }
+
+    getFeedData().push({
+      type: type,
+      qty: qty,
+      price: price,
+      date: date,
+      supplier: supplier
+    });
+    try{ save(); }catch(e){}
+
+    document.getElementById('stockType').value = '';
+    document.getElementById('stockQty').value = '';
+    document.getElementById('stockPrice').value = '';
+    document.getElementById('stockSupplier').value = '';
+    renderStock();
+    toast('تم إضافة العلف للمخزون','ok');
+  }
+
+  function delFeedStock(idx){
+    if(!confirm('حذف هذا السجل؟')) return;
+    getFeedData().splice(idx,1);
+    try{ save(); }catch(e){}
+    renderStock();
+    toast('تم الحذف','ok');
+  }
+
+  function renderStock(){
+    var out = document.getElementById('stockList');
+    var summary = document.getElementById('stockSummary');
+    var calcOut = document.getElementById('feedCalcOut');
+    if(!out) return;
+
+    var items = getFeedData();
+
+    // إجمالي المخزون
+    var totalKg = 0, totalValue = 0;
+    var byType = {};
+    items.forEach(function(it){
+      totalKg += it.qty;
+      totalValue += it.price;
+      if(!byType[it.type]) byType[it.type] = 0;
+      byType[it.type] += it.qty;
+    });
+
+    if(summary){
+      summary.innerHTML = 
+        '<div class="stat"><b style="color:#8e24aa">'+Math.round(totalKg)+'</b><span>إجمالي كغ</span></div>'+
+        '<div class="stat"><b style="color:#2e7d32">'+money(totalValue)+'</b><span>قيمة المخزون (دج)</span></div>';
+    }
+
+    // المخزون حسب النوع
+    if(!items.length){
+      out.innerHTML = '<div class="empty">لا يوجد مخزون مسجل</div>';
+    } else {
+      var maxKg = 1;
+      Object.keys(byType).forEach(function(k){ if(byType[k]>maxKg) maxKg=byType[k]; });
+      var html = '';
+      Object.keys(byType).forEach(function(k){
+        var w = Math.round((byType[k]/maxKg)*100);
+        var cls = w < 25 ? 'low' : (w < 50 ? 'mid' : '');
+        html += '<div class="feed-item">';
+        html += '<div class="feed-item-head"><span class="feed-item-name">🌾 '+esc(k)+'</span><span class="feed-item-qty">'+Math.round(byType[k])+' كغ</span></div>';
+        html += '<div class="feed-bar"><div class="feed-bar-fill '+cls+'" style="width:'+w+'%"></div></div>';
+        html += '</div>';
+      });
+      // تفاصيل كل سجل
+      html += '<h3 style="margin-top:14px">سجل المشتريات</h3>';
+      items.slice().reverse().forEach(function(it, i){
+        var realIdx = items.length - 1 - i;
+        html += '<div class="feed-item" style="border-right-color:#2e7d32">';
+        html += '<div class="feed-item-head"><span class="feed-item-name">'+esc(it.type)+'</span><span class="feed-item-qty">'+it.qty+' كغ</span></div>';
+        html += '<div class="feed-item-info">📅 '+esc(fmtDate(it.date))+(it.price>0?' • 💰 '+money(it.price)+' دج':'')+(it.supplier?' • 🏪 '+esc(it.supplier):'')+'</div>';
+        html += '<div style="margin-top:8px;text-align:left"><button class="danger" data-stock-del="'+realIdx+'">حذف</button></div>';
+        html += '</div>';
+      });
+      out.innerHTML = html;
+    }
+
+    // حاسبة الاحتياج
+    if(calcOut){
+      var animals = [];
+      try{ animals = data.animals || []; }catch(e){}
+      var byAnimalType = {};
+      animals.forEach(function(a){
+        var t = a.type || 'خروف';
+        if(!byAnimalType[t]) byAnimalType[t] = 0;
+        byAnimalType[t]++;
+      });
+
+      if(!animals.length){
+        calcOut.innerHTML = '<div class="empty">أضف حيوانات أولًا في صفحة الماشية</div>';
+      } else {
+        var dailyTotal = 0;
+        var html = '<h3>🧮 الاحتياج اليومي المتوقع</h3>';
+        Object.keys(byAnimalType).forEach(function(t){
+          var count = byAnimalType[t];
+          var need = DAILY_NEEDS[t] || 1.5;
+          var total = count * need;
+          dailyTotal += total;
+          html += '<div class="calc-row"><span>'+esc(t)+' × '+count+'</span><span><b>'+total.toFixed(1)+'</b> كغ/يوم</span></div>';
+        });
+        html += '<div class="calc-total">إجمالي الاحتياج اليومي: '+dailyTotal.toFixed(1)+' كغ<span>شهريًا: '+Math.round(dailyTotal*30)+' كغ</span></div>';
+
+        if(totalKg > 0 && dailyTotal > 0){
+          var days = Math.floor(totalKg / dailyTotal);
+          var cls = days < 7 ? 'danger' : (days < 30 ? 'warn' : '');
+          html += '<div class="feed-days '+cls+'">المخزون يكفي لمدة <b>'+days+'</b> يوم تقريبًا</div>';
+          if(days < 7){
+            html += '<div class="msg err" style="display:block;margin-top:8px">⚠️ المخزون منخفض! يجب شراء علف قريبًا.</div>';
+          }
+        }
+        calcOut.innerHTML = html;
+      }
+    }
+  }
+
+  function buildUI(){
+    var main = document.querySelector('main');
+    if(!main || document.getElementById('stock')) return;
+    var s = document.createElement('section');
+    s.id = 'stock';
+    s.className = 'page';
+    s.innerHTML = '<div class="card">'+
+      '<h2>📦 مخزون الأعلاف</h2>'+
+      '<p class="small muted">تابع مخزونك من العلف، السعر، والاحتياج اليومي لحيواناتك.</p>'+
+      '<div class="feed-summary" id="stockSummary"></div>'+
+      '</div>'+
+      '<div class="card">'+
+      '<h3>➕ إضافة علف للمخزون</h3>'+
+      '<label>نوع العلف</label>'+
+      '<input id="stockType" maxlength="40" placeholder="شعير، ذرة، تبن، نخالة..." inputmode="text">'+
+      '<label>الكمية (كغ)</label>'+
+      '<input id="stockQty" type="number" min="0" step="0.1" placeholder="0" inputmode="decimal">'+
+      '<label>السعر الإجمالي (دج) — اختياري</label>'+
+      '<input id="stockPrice" type="number" min="0" step="0.01" placeholder="0" inputmode="decimal">'+
+      '<label>التاريخ</label>'+
+      '<input id="stockDate" type="date">'+
+      '<label>المورد (اختياري)</label>'+
+      '<input id="stockSupplier" maxlength="60" placeholder="اسم المورد أو السوق" inputmode="text">'+
+      '<button class="btn" id="addStockBtn">💾 إضافة للمخزون</button>'+
+      '</div>'+
+      '<div class="card"><h3>📊 المخزون الحالي</h3><div id="stockList"></div></div>'+
+      '<div class="card"><div id="feedCalcOut"></div></div>';
+    main.appendChild(s);
+
+    var nav = document.querySelector('nav');
+    if(nav && !nav.querySelector('[data-page="stock"]')){
+      var b = document.createElement('button');
+      b.className = 'nav-btn';
+      b.setAttribute('data-page', 'stock');
+      b.innerHTML = '<span>📦</span>مخزون';
+      nav.appendChild(b);
+      b.addEventListener('click', function(){
+        if(typeof showPage === 'function') showPage('stock');
+        var d = document.getElementById('stockDate');
+        if(d && !d.value) d.value = today();
+        renderStock();
+      });
+    }
+
+    var quickGrid = document.querySelector('#home .grid');
+    if(quickGrid && !document.querySelector('#home [data-page="stock"]')){
+      var qb = document.createElement('button');
+      qb.className = 'btn2 nav-btn';
+      qb.setAttribute('data-page', 'stock');
+      qb.textContent = '📦 مخزون';
+      quickGrid.appendChild(qb);
+      qb.addEventListener('click', function(){
+        if(typeof showPage === 'function') showPage('stock');
+        var d = document.getElementById('stockDate');
+        if(d && !d.value) d.value = today();
+        renderStock();
+      });
+    }
+
+    var addBtn = document.getElementById('addStockBtn');
+    if(addBtn) addBtn.addEventListener('click', addFeedStock);
+  }
+
+  document.addEventListener('click', function(e){
+    var b = e.target.closest && e.target.closest('[data-stock-del]');
+    if(!b) return;
+    delFeedStock(Number(b.getAttribute('data-stock-del')));
+  });
+
+  function init(){
+    buildUI();
+    var d = document.getElementById('stockDate');
+    if(d && !d.value) d.value = today();
+    renderStock();
+    setTimeout(renderStock, 1000);
+    setTimeout(renderStock, 2500);
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
 </body>
 </html>
