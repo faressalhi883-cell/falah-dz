@@ -2659,5 +2659,495 @@ body.dark-mode .dairy-log{background:#2a2a3e!important}
   }
 })();
 </script>
+  <style>
+/* بحث داخلي */
+#searchPage .search-inputs{display:flex;gap:6px;margin-bottom:10px}
+#searchPage .search-inputs input{flex:1}
+.search-result{background:var(--light);border-radius:10px;padding:10px;margin-bottom:8px;border-right:4px solid #8e24aa}
+body.dark-mode .search-result{background:#2a2a3e!important}
+.search-result .sr-title{font-weight:bold;color:var(--green);font-size:14px;margin-bottom:4px}
+.search-result .sr-info{font-size:12px;color:var(--muted)}
+.search-result .sr-type{display:inline-block;background:#f3e5f5;color:#6a1b9a;font-size:10px;padding:2px 8px;border-radius:6px;margin-right:6px}
+body.dark-mode .search-result .sr-type{background:#3a2a4e;color:#ba68c8}
+/* مهمات */
+.task-item{background:var(--light);border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;border-right:4px solid #8e24aa;transition:opacity .3s}
+body.dark-mode .task-item{background:#2a2a3e!important}
+.task-item.done{opacity:.55;border-right-color:#2e7d32;text-decoration:line-through}
+.task-item .task-check{width:24px;height:24px;border-radius:50%;border:2px solid #8e24aa;background:transparent;cursor:pointer;flex:0 0 auto;display:flex;align-items:center;justify-content:center;color:transparent;font-size:14px;padding:0}
+.task-item.done .task-check{background:#2e7d32;border-color:#2e7d32;color:#fff}
+.task-item .task-body{flex:1;min-width:0}
+.task-item .task-title{font-weight:bold;color:var(--text);font-size:14px;word-break:break-word}
+.task-item .task-meta{font-size:11px;color:var(--muted);margin-top:2px}
+.task-item .task-del{background:#ffebee;color:#b71c1c;border:1px solid #ef9a9a;padding:4px 8px;font-size:11px;border-radius:6px;cursor:pointer;font-family:inherit}
+body.dark-mode .task-item .task-del{background:#3a1a1a;color:#ef5350;border-color:#5a2a2a}
+.task-priority{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;margin-right:6px;font-weight:bold}
+.task-priority.high{background:#ffebee;color:#c62828}
+.task-priority.mid{background:#fff3e0;color:#e65100}
+.task-priority.low{background:#e8f5e9;color:#2e7d32}
+body.dark-mode .task-priority.high{background:#5a1a1a;color:#ef5350}
+body.dark-mode .task-priority.mid{background:#5a3a1a;color:#ffb74d}
+body.dark-mode .task-priority.low{background:#1a5a1a;color:#81c784}
+.task-summary{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+/* جدول الري */
+.irrig-item{background:var(--light);border-radius:10px;padding:10px 12px;margin-bottom:8px;border-right:4px solid #2196f3}
+body.dark-mode .irrig-item{background:#2a2a3e!important}
+.irrig-item.overdue{border-right-color:#d32f2f}
+.irrig-item.today-irr{border-right-color:#f57c00}
+.irrig-item.upcoming{border-right-color:#2196f3}
+.irrig-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.irrig-crop{font-weight:bold;color:var(--green);font-size:14px}
+.irrig-date{font-size:12px;color:var(--muted)}
+.irrig-info{font-size:12px;color:var(--text);margin-top:4px}
+.irrig-badge{display:inline-block;padding:3px 8px;border-radius:6px;font-size:10px;font-weight:bold;margin-top:6px}
+.irrig-badge.overdue{background:#ffebee;color:#c62828}
+.irrig-badge.today-b{background:#fff3e0;color:#e65100}
+.irrig-badge.upcoming{background:#e3f2fd;color:#1565c0}
+body.dark-mode .irrig-badge.overdue{background:#5a1a1a;color:#ef5350}
+body.dark-mode .irrig-badge.today-b{background:#5a3a1a;color:#ffb74d}
+body.dark-mode .irrig-badge.upcoming{background:#1a3a5a;color:#64b5f6}
+</style>
+
+<script>
+/* ============== ميزة 13: البحث الداخلي ============== */
+(function(){
+  function searchAll(q){
+    q = q.toLowerCase().trim();
+    if(!q) return [];
+    var results = [];
+    function match(str){ return String(str||'').toLowerCase().indexOf(q) !== -1; }
+    try{
+      (data.animals||[]).forEach(function(a,i){
+        if(match(a.name)||match(a.type)||match(a.note)){
+          results.push({type:'حيوان',icon:'🐑',title:a.name||'',info:(a.type||'')+' • '+(a.date||'')+(a.note?' • '+a.note:''),page:'animals'});
+        }
+      });
+      (data.feed||[]).forEach(function(f){
+        if(match(f.type)||match(f.note)){
+          results.push({type:'علف',icon:'🌾',title:f.type||'',info:(f.qty||0)+' كغ • '+(f.date||'')+(f.note?' • '+f.note:''),page:'feed'});
+        }
+      });
+      (data.expenses||[]).forEach(function(e){
+        if(match(e.title)){
+          results.push({type:'مصروف',icon:'💰',title:e.title||'',info:money(e.amount)+' دج • '+(e.date||''),page:'expenses'});
+        }
+      });
+      (data.sales||[]).forEach(function(s){
+        if(match(s.title)){
+          results.push({type:'بيع',icon:'💵',title:s.title||'',info:money(s.amount)+' دج • '+(s.date||''),page:'sales'});
+        }
+      });
+      (data.crops||[]).forEach(function(c){
+        if(match(c.crop)){
+          results.push({type:'محصول',icon:'🌱',title:c.crop||'',info:(c.area||0)+' هـ • '+(c.date||''),page:'crops'});
+        }
+      });
+      (data.health||[]).forEach(function(h){
+        if(match(h.animal)||match(h.desc)||match(h.med)){
+          results.push({type:'صحي',icon:'📔',title:h.animal+' — '+h.type,info:h.desc+(h.med?' • '+h.med:''),page:'health'});
+        }
+      });
+      (data.weights||[]).forEach(function(w){
+        if(match(w.animal)||match(w.note)){
+          results.push({type:'وزن',icon:'⚖️',title:w.animal,info:w.kg+' كغ • '+w.date+(w.note?' • '+w.note:''),page:'weights'});
+        }
+      });
+      (data.medStock||[]).forEach(function(m){
+        if(match(m.name)){
+          results.push({type:'دواء',icon:'💊',title:m.name,info:m.qty+' '+m.unit+(m.expDate?' • ينتهي '+m.expDate:''),page:'medstock'});
+        }
+      });
+      (data.feedStock||[]).forEach(function(f){
+        if(match(f.type)||match(f.supplier)){
+          results.push({type:'مخزون',icon:'📦',title:f.type,info:f.qty+' كغ'+(f.supplier?' • '+f.supplier:''),page:'stock'});
+        }
+      });
+      (data.dairy||[]).forEach(function(d){
+        if(match(d.animal)||match(d.note)){
+          results.push({type:'حلب',icon:'🐄',title:d.animal,info:d.qty+' لتر • '+d.date+' • '+d.time,page:'dairy'});
+        }
+      });
+    }catch(e){}
+    return results;
+  }
+
+  function renderSearch(){
+    var q = document.getElementById('globalSearchInput').value.trim();
+    var out = document.getElementById('searchResults');
+    if(!out) return;
+    if(!q){ out.innerHTML = '<div class="empty">اكتب كلمة للبحث في كل السجلات</div>'; return; }
+    var results = searchAll(q);
+    if(!results.length){ out.innerHTML = '<div class="empty">لا توجد نتائج لـ "'+esc(q)+'"</div>'; return; }
+    var html = '<div class="small muted">عدد النتائج: '+results.length+'</div>';
+    results.slice(0, 100).forEach(function(r){
+      html += '<div class="search-result">';
+      html += '<div class="sr-title">'+r.icon+' '+esc(r.title)+'</div>';
+      html += '<div class="sr-info"><span class="sr-type">'+r.type+'</span>'+esc(r.info)+'</div>';
+      html += '</div>';
+    });
+    out.innerHTML = html;
+  }
+
+  function buildSearch(){
+    var main = document.querySelector('main');
+    if(!main || document.getElementById('searchPage')) return;
+    var s = document.createElement('section');
+    s.id = 'searchPage';
+    s.className = 'page';
+    s.innerHTML = '<div class="card">'+
+      '<h2>🔍 البحث الشامل</h2>'+
+      '<p class="small muted">ابحث في كل بياناتك: الحيوانات، الأعلاف، المصاريف، المبيعات، المحاصيل، السجلات الصحية، والأوزان.</p>'+
+      '<div class="search-inputs">'+
+      '<input id="globalSearchInput" placeholder="اكتب للبحث..." inputmode="search">'+
+      '<button id="globalSearchBtn" class="btn btn-auto">بحث</button>'+
+      '</div>'+
+      '<div id="searchResults"><div class="empty">اكتب كلمة للبحث في كل السجلات</div></div>'+
+      '</div>';
+    main.appendChild(s);
+    var nav = document.querySelector('nav');
+    if(nav && !nav.querySelector('[data-page="searchPage"]')){
+      var b = document.createElement('button');
+      b.className = 'nav-btn';
+      b.setAttribute('data-page', 'searchPage');
+      b.innerHTML = '<span>🔍</span>بحث';
+      nav.appendChild(b);
+      b.addEventListener('click', function(){
+        if(typeof showPage === 'function') showPage('searchPage');
+        setTimeout(function(){var el=document.getElementById('globalSearchInput'); if(el) el.focus();}, 300);
+      });
+    }
+    var qg = document.querySelector('#home .grid');
+    if(qg && !document.querySelector('#home [data-page="searchPage"]')){
+      var qb = document.createElement('button');
+      qb.className = 'btn2 nav-btn';
+      qb.setAttribute('data-page', 'searchPage');
+      qb.textContent = '🔍 بحث';
+      qg.appendChild(qb);
+      qb.addEventListener('click', function(){ if(typeof showPage === 'function') showPage('searchPage'); });
+    }
+    var inp = document.getElementById('globalSearchInput');
+    if(inp){
+      inp.addEventListener('input', renderSearch);
+      inp.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); renderSearch(); } });
+    }
+    var btn = document.getElementById('globalSearchBtn');
+    if(btn) btn.addEventListener('click', renderSearch);
+  }
+  window.__buildSearch = buildSearch;
+  window.__renderSearch = renderSearch;
+})();
+
+/* ============== ميزة 14: مهمات يومية ============== */
+(function(){
+  function getTasks(){
+    try{
+      if(!data.tasks) data.tasks = [];
+      return data.tasks;
+    }catch(e){return [];}
+  }
+  function saveTasks(){ try{ save(); }catch(e){} }
+
+  function addTask(){
+    var title = document.getElementById('taskTitle').value.trim();
+    var priority = document.getElementById('taskPriority').value;
+    var due = document.getElementById('taskDue').value;
+    if(!title){ toast('اكتب عنوان المهمة','err'); return; }
+    getTasks().push({
+      title: title,
+      priority: priority,
+      due: due,
+      done: false,
+      addedAt: Date.now()
+    });
+    saveTasks();
+    document.getElementById('taskTitle').value = '';
+    document.getElementById('taskDue').value = '';
+    renderTasks();
+    toast('تم إضافة المهمة','ok');
+  }
+
+  function toggleTask(idx){
+    var t = getTasks()[idx];
+    if(!t) return;
+    t.done = !t.done;
+    saveTasks();
+    renderTasks();
+  }
+
+  function delTask(idx){
+    if(!confirm('حذف هذه المهمة؟')) return;
+    getTasks().splice(idx,1);
+    saveTasks();
+    renderTasks();
+    toast('تم الحذف','ok');
+  }
+
+  function renderTasks(){
+    var out = document.getElementById('taskList');
+    var summary = document.getElementById('taskSummary');
+    if(!out) return;
+    var tasks = getTasks();
+    var done = tasks.filter(function(t){return t.done;}).length;
+    var pending = tasks.length - done;
+    if(summary){
+      summary.innerHTML = 
+        '<div class="stat"><b style="color:#8e24aa">'+pending+'</b><span>مهام معلقة</span></div>'+
+        '<div class="stat"><b style="color:#2e7d32">'+done+'</b><span>مكتملة</span></div>';
+    }
+    if(!tasks.length){
+      out.innerHTML = '<div class="empty">لا توجد مهمات</div>';
+      return;
+    }
+    // sort: pending first, then high priority, then by due date
+    var sorted = tasks.map(function(t,i){return {t:t, i:i};}).sort(function(a,b){
+      if(a.t.done !== b.t.done) return a.t.done ? 1 : -1;
+      var prio = {'عالية':3, 'متوسطة':2, 'منخفضة':1};
+      var pa = prio[a.t.priority] || 2;
+      var pb = prio[b.t.priority] || 2;
+      if(pa !== pb) return pb - pa;
+      if(a.t.due && b.t.due) return a.t.due.localeCompare(b.t.due);
+      return 0;
+    });
+    var html = '';
+    sorted.forEach(function(item){
+      var t = item.t, i = item.i;
+      var prioClass = t.priority === 'عالية' ? 'high' : (t.priority === 'منخفضة' ? 'low' : 'mid');
+      html += '<div class="task-item'+(t.done?' done':'')+'">';
+      html += '<button class="task-check" data-task-toggle="'+i+'">✓</button>';
+      html += '<div class="task-body">';
+      html += '<div class="task-title"><span class="task-priority '+prioClass+'">'+esc(t.priority)+'</span>'+esc(t.title)+'</div>';
+      if(t.due) html += '<div class="task-meta">📅 '+esc(fmtDate(t.due))+'</div>';
+      html += '</div>';
+      html += '<button class="task-del" data-task-del="'+i+'">حذف</button>';
+      html += '</div>';
+    });
+    out.innerHTML = html;
+  }
+
+  function buildTasks(){
+    var main = document.querySelector('main');
+    if(!main || document.getElementById('tasks')) return;
+    var s = document.createElement('section');
+    s.id = 'tasks';
+    s.className = 'page';
+    s.innerHTML = '<div class="card">'+
+      '<h2>📆 المهمات اليومية</h2>'+
+      '<p class="small muted">نظّم مهامك اليومية في المزرعة: تطعيم، ري، تنظيف، حصاد...</p>'+
+      '<div class="task-summary" id="taskSummary"></div>'+
+      '</div>'+
+      '<div class="card">'+
+      '<h3>➕ إضافة مهمة</h3>'+
+      '<label>عنوان المهمة</label>'+
+      '<input id="taskTitle" maxlength="100" placeholder="مثال: تطعيم الخرفان" inputmode="text">'+
+      '<label>الأولوية</label>'+
+      '<select id="taskPriority"><option>عالية</option><option selected>متوسطة</option><option>منخفضة</option></select>'+
+      '<label>الموعد (اختياري)</label>'+
+      '<input id="taskDue" type="date">'+
+      '<button class="btn" id="addTaskBtn">💾 إضافة المهمة</button>'+
+      '</div>'+
+      '<div class="card"><h3>📋 المهام</h3><div id="taskList"></div></div>';
+    main.appendChild(s);
+    var nav = document.querySelector('nav');
+    if(nav && !nav.querySelector('[data-page="tasks"]')){
+      var b = document.createElement('button');
+      b.className = 'nav-btn';
+      b.setAttribute('data-page', 'tasks');
+      b.innerHTML = '<span>📆</span>مهام';
+      nav.appendChild(b);
+      b.addEventListener('click', function(){ if(typeof showPage === 'function') showPage('tasks'); renderTasks(); });
+    }
+    var qg = document.querySelector('#home .grid');
+    if(qg && !document.querySelector('#home [data-page="tasks"]')){
+      var qb = document.createElement('button');
+      qb.className = 'btn2 nav-btn';
+      qb.setAttribute('data-page', 'tasks');
+      qb.textContent = '📆 مهام';
+      qg.appendChild(qb);
+      qb.addEventListener('click', function(){ if(typeof showPage === 'function') showPage('tasks'); renderTasks(); });
+    }
+    var addBtn = document.getElementById('addTaskBtn');
+    if(addBtn) addBtn.addEventListener('click', addTask);
+  }
+
+  document.addEventListener('click', function(e){
+    var t = e.target.closest && e.target.closest('[data-task-toggle]');
+    if(t){ toggleTask(Number(t.getAttribute('data-task-toggle'))); return; }
+    var d = e.target.closest && e.target.closest('[data-task-del]');
+    if(d){ delTask(Number(d.getAttribute('data-task-del'))); }
+  });
+
+  window.__buildTasks = buildTasks;
+  window.__renderTasks = renderTasks;
+})();
+
+/* ============== ميزة 15: جدول الري ============== */
+(function(){
+  function getIrrigation(){
+    try{
+      if(!data.irrigation) data.irrigation = [];
+      return data.irrigation;
+    }catch(e){return [];}
+  }
+  function saveIrr(){ try{ save(); }catch(e){} }
+
+  function addIrr(){
+    var crop = document.getElementById('irrCrop').value.trim();
+    var date = document.getElementById('irrDate').value || today();
+    var qty = document.getElementById('irrQty').value.trim();
+    var freq = document.getElementById('irrFreq').value;
+    var note = document.getElementById('irrNote').value.trim();
+    if(!crop){ toast('اكتب اسم المحصول','err'); return; }
+    getIrrigation().push({
+      crop: crop,
+      date: date,
+      qty: qty,
+      freq: freq,
+      note: note,
+      addedAt: Date.now()
+    });
+    saveIrr();
+    document.getElementById('irrCrop').value = '';
+    document.getElementById('irrQty').value = '';
+    document.getElementById('irrNote').value = '';
+    renderIrr();
+    toast('تم إضافة موعد الري','ok');
+  }
+
+  function delIrr(idx){
+    if(!confirm('حذف هذا الموعد؟')) return;
+    getIrrigation().splice(idx,1);
+    saveIrr();
+    renderIrr();
+    toast('تم الحذف','ok');
+  }
+
+  function daysDiff(dateStr){
+    if(!dateStr) return 99999;
+    var d = new Date(dateStr+'T00:00:00');
+    if(isNaN(d.getTime())) return 99999;
+    var t = new Date(); t.setHours(0,0,0,0);
+    return Math.floor((d - t) / 86400000);
+  }
+
+  function renderIrr(){
+    var out = document.getElementById('irrList');
+    if(!out) return;
+    var list = getIrrigation();
+    if(!list.length){
+      out.innerHTML = '<div class="empty">لا توجد مواعيد ري</div>';
+      return;
+    }
+    var sorted = list.map(function(it,i){return {it:it,i:i};}).sort(function(a,b){
+      return daysDiff(a.it.date) - daysDiff(b.it.date);
+    });
+    var html = '';
+    sorted.forEach(function(item){
+      var it = item.it, i = item.i;
+      var diff = daysDiff(it.date);
+      var cls = '', badge = '';
+      if(diff < 0){ cls='overdue'; badge='<span class="irrig-badge overdue">🔴 متأخر بـ '+Math.abs(diff)+' يوم</span>'; }
+      else if(diff === 0){ cls='today-irr'; badge='<span class="irrig-badge today-b">🟡 اليوم</span>'; }
+      else if(diff <= 2){ cls='upcoming'; badge='<span class="irrig-badge upcoming">🔵 بعد '+diff+' يوم</span>'; }
+      else { cls='upcoming'; badge='<span class="irrig-badge upcoming">📅 بعد '+diff+' يوم</span>'; }
+      html += '<div class="irrig-item '+cls+'">';
+      html += '<div class="irrig-head"><span class="irrig-crop">🌱 '+esc(it.crop)+'</span><span class="irrig-date">'+esc(fmtDate(it.date))+'</span></div>';
+      if(it.qty) html += '<div class="irrig-info">💧 '+esc(it.qty)+(it.freq?' • كل '+esc(it.freq):'')+'</div>';
+      if(it.note) html += '<div class="irrig-info" style="color:var(--muted)">📝 '+esc(it.note)+'</div>';
+      html += badge;
+      html += '<div style="margin-top:8px;text-align:left"><button class="danger" data-irr-del="'+i+'">حذف</button></div>';
+      html += '</div>';
+    });
+    out.innerHTML = html;
+  }
+
+  function buildIrr(){
+    var main = document.querySelector('main');
+    if(!main || document.getElementById('irrigation')) return;
+    var s = document.createElement('section');
+    s.id = 'irrigation';
+    s.className = 'page';
+    s.innerHTML = '<div class="card">'+
+      '<h2>💧 جدول الري</h2>'+
+      '<p class="small muted">نظّم مواعيد ري المحاصيل وتابع المهام المتأخرة.</p>'+
+      '</div>'+
+      '<div class="card">'+
+      '<h3>➕ إضافة موعد ري</h3>'+
+      '<label>المحصول</label>'+
+      '<input id="irrCrop" maxlength="60" placeholder="مثال: قمح، طماطم" inputmode="text">'+
+      '<label>التاريخ</label>'+
+      '<input id="irrDate" type="date">'+
+      '<label>الكمية (اختياري)</label>'+
+      '<input id="irrQty" maxlength="40" placeholder="مثال: 500 لتر" inputmode="text">'+
+      '<label>التكرار</label>'+
+      '<select id="irrFreq"><option>يوم</option><option selected>أسبوع</option><option>أسبوعين</option><option>شهر</option><option>مرة واحدة</option></select>'+
+      '<label>ملاحظة (اختياري)</label>'+
+      '<input id="irrNote" maxlength="80" placeholder="مثال: رش خفيف صباحًا" inputmode="text">'+
+      '<button class="btn" id="addIrrBtn">💾 إضافة الموعد</button>'+
+      '</div>'+
+      '<div class="card"><h3>📋 جدول الري</h3><div id="irrList"></div></div>';
+    main.appendChild(s);
+    var nav = document.querySelector('nav');
+    if(nav && !nav.querySelector('[data-page="irrigation"]')){
+      var b = document.createElement('button');
+      b.className = 'nav-btn';
+      b.setAttribute('data-page', 'irrigation');
+      b.innerHTML = '<span>💧</span>ري';
+      nav.appendChild(b);
+      b.addEventListener('click', function(){
+        if(typeof showPage === 'function') showPage('irrigation');
+        var d = document.getElementById('irrDate');
+        if(d && !d.value) d.value = today();
+        renderIrr();
+      });
+    }
+    var qg = document.querySelector('#home .grid');
+    if(qg && !document.querySelector('#home [data-page="irrigation"]')){
+      var qb = document.createElement('button');
+      qb.className = 'btn2 nav-btn';
+      qb.setAttribute('data-page', 'irrigation');
+      qb.textContent = '💧 ري';
+      qg.appendChild(qb);
+      qb.addEventListener('click', function(){
+        if(typeof showPage === 'function') showPage('irrigation');
+        var d = document.getElementById('irrDate');
+        if(d && !d.value) d.value = today();
+        renderIrr();
+      });
+    }
+    var addBtn = document.getElementById('addIrrBtn');
+    if(addBtn) addBtn.addEventListener('click', addIrr);
+  }
+
+  document.addEventListener('click', function(e){
+    var b = e.target.closest && e.target.closest('[data-irr-del]');
+    if(!b) return;
+    delIrr(Number(b.getAttribute('data-irr-del')));
+  });
+
+  window.__buildIrr = buildIrr;
+  window.__renderIrr = renderIrr;
+})();
+
+/* تشغيل الثلاثة معًا */
+(function(){
+  function initAll(){
+    try{ window.__buildSearch(); }catch(e){console.warn('Search:',e);}
+    try{ window.__buildTasks(); }catch(e){console.warn('Tasks:',e);}
+    try{ window.__buildIrr(); }catch(e){console.warn('Irr:',e);}
+    try{ window.__renderTasks(); }catch(e){}
+    try{ window.__renderIrr(); }catch(e){}
+    var d = document.getElementById('irrDate');
+    if(d && !d.value) d.value = today();
+    setTimeout(function(){
+      try{ window.__renderTasks(); }catch(e){}
+      try{ window.__renderIrr(); }catch(e){}
+    }, 1200);
+  }
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', initAll);
+  } else {
+    setTimeout(initAll, 300);
+  }
+})();
+</script>
 </body>
 </html>
