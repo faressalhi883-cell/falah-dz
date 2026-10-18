@@ -3862,6 +3862,20 @@ async function sendAIMessage() {
   }
   chatBox.scrollTop = chatBox.scrollHeight;
 }
+  document.addEventListener('DOMContentLoaded', () => {
+  const nav = document.querySelector('nav');
+  if (nav && !nav.querySelector('[data-page="aiChatPage"]')) {
+    const btn = document.createElement('button');
+    btn.className = 'nav-btn';
+    btn.setAttribute('data-page', 'aiChatPage');
+    btn.innerHTML = '<span>🤖</span>مساعد';
+    nav.appendChild(btn);
+    
+    btn.addEventListener('click', () => {
+      if(typeof showPage === 'function') showPage('aiChatPage');
+    });
+  }
+});
 </script>
 </body>
 </html>
