@@ -3879,7 +3879,8 @@ async function sendAIMessage() {
   try {
     const response = await puter.ai.chat(`أنت خبير زراعي وبيطري جزائري. أجب باللغة العربية باختصار: ${text}`);
     typing.style.display = 'none';
-    chatBox.innerHTML += `<div class="msg-bubble msg-ai">${response}</div>`;
+    const formatted = response.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+chatBox.innerHTML += `<div class="msg-bubble msg-ai">${formatted}</div>`;
   } catch (err) {
     typing.style.display = 'none';
     chatBox.innerHTML += `<div class="msg-bubble msg-ai" style="color:red;">تعذر الاتصال. تحقق من الإنترنت.</div>`;
