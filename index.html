@@ -3876,14 +3876,46 @@ async function sendAIMessage() {
   chatBox.scrollTop = chatBox.scrollHeight;
   typing.style.display = 'block';
 
+  let aiText = null;
+
+  // 🟢 المحاولة 1: Pollinations.ai (بدون مفتاح - الأسرع حالياً)
   try {
-    const response = await puter.ai.chat(`أنت خبير زراعي وبيطري جزائري. أجب باللغة العربية باختصار: ${text}`);
-    typing.style.display = 'none';
-    const formatted = response.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
-chatBox.innerHTML += `<div class="msg-bubble msg-ai">${formatted}</div>`;
-  } catch (err) {
-    typing.style.display = 'none';
-    chatBox.innerHTML += `<div class="msg-bubble msg-ai" style="color:red;">تعذر الاتصال. تحقق من الإنترنت.</div>`;
+    const res1 = await fetch('https://text.pollinations.ai/openai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [
+          { role: 'system', content: 'أنت خبير زراعي وبيطري جزائري. أجب باللغة العربية باختصار.' },
+          { role: 'user', content: text }
+        ]
+      })
+    });
+    if (res1.ok) {
+      const data1 = await res1.json();
+      aiText = data1.choices[0].message.content;
+    }
+  } catch (e) {
+    console.warn('Pollinations فشل، جاري تجربة المصدر الثاني...');
+  }
+
+  // 🟡 المحاولة 2: Puter.js (احتياطي)
+  if (!aiText) {
+    try {
+      const res2 = await puter.ai.chat(`أنت خبير زراعي. أجب باللغة العربية: ${text}`);
+      aiText = res2;
+    } catch (e) {
+      console.warn('Puter فشل أيضاً...');
+    }
+  }
+
+  // عرض النتيجة النهائية
+  typing.style.display = 'none';
+  if (aiText) {
+    const formatted = aiText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+    chatBox.innerHTML += `<div class="msg-bubble msg-ai">${formatted}</div>`;
+  } else {
+    chatBox.innerHTML += `<div class="msg-bubble msg-ai" style="color:red;">عذراً، جميع المصادر مشغولة حالياً. حاول لاحقاً.</div>`;
   }
   chatBox.scrollTop = chatBox.scrollHeight;
 }
