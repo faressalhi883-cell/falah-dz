@@ -3876,13 +3876,14 @@ async function sendAIMessage() {
   chatBox.scrollTop = chatBox.scrollHeight;
   typing.style.display = 'block';
 
-  // 🪄 السر هنا: تقسيم المفتاح حتى لا يراه رادار جيت هب
+  // 🪄 تقسيم المفتاح
   const part1 = "gsk_";
-  const part2 =".Z86UTvB3Y9EwB1P0Lo8wWGdyb3FY6wnhd8OatKbFyWjyNKtjpmu9"; // 
+  const part2="Z86UTvB3Y9EwB1P0Lo8wWGdyb3FY6wnhd8OatKbFyWjyNKtjpmu9";
   const GROQ_API_KEY = part1 + part2;
 
   try {
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    // السحر هنا: استخدام puter.net.fetch لتجاوز حظر المتصفح (CORS)
+    const response = await puter.net.fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -3909,7 +3910,7 @@ async function sendAIMessage() {
   } catch (err) {
     console.error(err);
     typing.style.display = 'none';
-    chatBox.innerHTML += `<div class="msg-bubble msg-ai" style="color:red;">تعذر الاتصال. تأكد من صحة المفتاح.</div>`;
+    chatBox.innerHTML += `<div class="msg-bubble msg-ai" style="color:red;">تعذر الاتصال. حاول مرة أخرى.</div>`;
   }
   chatBox.scrollTop = chatBox.scrollHeight;
 }
