@@ -3864,6 +3864,7 @@ body.dark-mode .msg-ai { background: #2e7d32; color: #fff; }
 
 <script src="https://js.puter.com/v2/"></script>
 <script>
+
 async function sendAIMessage() {
   const input = document.getElementById('aiInput');
   const chatBox = document.getElementById('chatBox');
@@ -3878,12 +3879,14 @@ async function sendAIMessage() {
 
   // 🪄 تقسيم المفتاح
   const part1 = "gsk_";
-  const part2="Z86UTvB3Y9EwB1P0Lo8wWGdyb3FY6wnhd8OatKbFyWjyNKtjpmu9";
+  const part2 = "Z86UTvB3Y9EwB1P0Lo8wWGdyb3FY6wnhd8OatKbFyWjyNKtjpmu9"؛
   const GROQ_API_KEY = part1 + part2;
 
+  const groqUrl = "https://api.groq.com/openai/v1/chat/completions";
+  const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(groqUrl);
+
   try {
-    // السحر هنا: استخدام puter.net.fetch لتجاوز حظر المتصفح (CORS)
-    const response = await puter.net.fetch("https://api.groq.com/openai/v1/chat/completions", {
+    const response = await fetch(proxyUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -3914,7 +3917,6 @@ async function sendAIMessage() {
   }
   chatBox.scrollTop = chatBox.scrollHeight;
 }
-
 document.addEventListener('DOMContentLoaded', () => {
   // 1. إضافة الزر في الشريط العلوي (الهيدر)
   const header = document.querySelector('header');
