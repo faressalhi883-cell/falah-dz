@@ -3835,14 +3835,14 @@ body.dark-mode .equip-badge.overdue{background:#5a1a1a;color:#ef5350}
 })();
 </script>
   <script src="https://js.puter.com/v2/"></script>
-
 <script>
-// دالة جديدة لإرسال الرسالة باستخدام Puter.js
-async function sendAIMessageWithPuter() {
+// دالة الإرسال الجديدة التي تستخدم Puter.js
+async function sendAIMessage() {
   const input = document.getElementById('aiInput');
   const chatBox = document.getElementById('chatBox');
   const typing = document.getElementById('typingIndicator');
   const text = input.value.trim();
+  
   if (!text) return;
 
   // عرض رسالة المستخدم
@@ -3852,31 +3852,16 @@ async function sendAIMessageWithPuter() {
   typing.style.display = 'block';
 
   try {
-    // استخدام Puter AI بدلاً من fetch
-    const response = await puter.ai.chat(
-      `أنت خبير زراعي وبيطري جزائري. أجب على السؤال التالي باللغة العربية باختصار: ${text}`
-    );
-    
+    // الاتصال بالذكاء الاصطناعي (بدون الحاجة لمفاتيح API)
+    const response = await puter.ai.chat(`أنت خبير زراعي وبيطري جزائري. أجب باللغة العربية باختصار: ${text}`);
     typing.style.display = 'none';
-    // عرض رد الذكاء الاصطناعي
     chatBox.innerHTML += `<div class="msg-bubble msg-ai">${response}</div>`;
-    
   } catch (err) {
     typing.style.display = 'none';
-    chatBox.innerHTML += `<div class="msg-bubble msg-ai" style="color:red;">تعذر الاتصال بالمساعد.</div>`;
+    chatBox.innerHTML += `<div class="msg-bubble msg-ai" style="color:red;">تعذر الاتصال بالمساعد. تحقق من الإنترنت.</div>`;
   }
   chatBox.scrollTop = chatBox.scrollHeight;
 }
-
-// ربط زر الإرسال بالدالة الجديدة
-document.addEventListener('DOMContentLoaded', () => {
-  // البحث عن زر الإرسال وتغيير وظيفته
-  const sendButton = document.querySelector('.chat-input-area button');
-  if (sendButton) {
-    // إزالة الحدث القديم وإضافة الجديد
-    sendButton.onclick = sendAIMessageWithPuter;
-  }
-});
 </script>
 </body>
 </html>
