@@ -3834,48 +3834,91 @@ body.dark-mode .equip-badge.overdue{background:#5a1a1a;color:#ef5350}
   setTimeout(addButtonsToHome, 2000);
 })();
 </script>
-  <script src="https://js.puter.com/v2/"></script>
+<style>
+#aiChatPage { display: flex; flex-direction: column; height: calc(100vh - 130px); }
+.chat-box { flex: 1; overflow-y: auto; padding: 10px; background: #fff; border-radius: 12px; margin-bottom: 10px; box-shadow: inset 0 0 5px rgba(0,0,0,0.1); }
+body.dark-mode .chat-box { background: #1a1a2e; }
+.msg-bubble { max-width: 80%; padding: 10px 14px; border-radius: 12px; margin-bottom: 10px; font-size: 14px; line-height: 1.6; word-wrap: break-word; }
+.msg-user { background: #8e24aa; color: #fff; align-self: flex-end; margin-left: auto; border-bottom-right-radius: 2px; }
+.msg-ai { background: #e8f5e9; color: #1b5e20; align-self: flex-start; border-bottom-left-radius: 2px; }
+body.dark-mode .msg-ai { background: #2e7d32; color: #fff; }
+.chat-input-area { display: flex; gap: 8px; }
+.chat-input-area input { flex: 1; padding: 12px; border-radius: 20px; border: 1px solid #ccc; }
+.chat-input-area button { border-radius: 50%; width: 45px; height: 45px; background: #8e24aa; color: #fff; font-size: 18px; display: flex; align-items: center; justify-content: center; border: none; }
+.typing { font-size: 12px; color: #888; font-style: italic; display: none; margin-bottom: 10px; }
+</style>
+
+<section id="aiChatPage" class="page">
+  <div class="card" style="flex:1; display:flex; flex-direction:column; overflow:hidden;">
+    <h2 style="margin-bottom:10px;">🤖 المساعد الزراعي الذكي</h2>
+    <div class="chat-box" id="chatBox">
+      <div class="msg-bubble msg-ai">مرحباً بك! كيف يمكنني مساعدتك اليوم؟ 🚜🌾</div>
+    </div>
+    <div class="typing" id="typingIndicator">المساعد يكتب الآن...</div>
+    <div class="chat-input-area">
+      <input type="text" id="aiInput" placeholder="اكتب سؤالك هنا..." onkeydown="if(event.key==='Enter') sendAIMessage()">
+      <button onclick="sendAIMessage()">➤</button>
+    </div>
+  </div>
+</section>
+
+<script src="https://js.puter.com/v2/"></script>
 <script>
-// دالة الإرسال الجديدة التي تستخدم Puter.js
 async function sendAIMessage() {
   const input = document.getElementById('aiInput');
   const chatBox = document.getElementById('chatBox');
   const typing = document.getElementById('typingIndicator');
   const text = input.value.trim();
-  
   if (!text) return;
 
-  // عرض رسالة المستخدم
   chatBox.innerHTML += `<div class="msg-bubble msg-user">${text}</div>`;
   input.value = '';
   chatBox.scrollTop = chatBox.scrollHeight;
   typing.style.display = 'block';
 
   try {
-    // الاتصال بالذكاء الاصطناعي (بدون الحاجة لمفاتيح API)
     const response = await puter.ai.chat(`أنت خبير زراعي وبيطري جزائري. أجب باللغة العربية باختصار: ${text}`);
     typing.style.display = 'none';
     chatBox.innerHTML += `<div class="msg-bubble msg-ai">${response}</div>`;
   } catch (err) {
     typing.style.display = 'none';
-    chatBox.innerHTML += `<div class="msg-bubble msg-ai" style="color:red;">تعذر الاتصال بالمساعد. تحقق من الإنترنت.</div>`;
+    chatBox.innerHTML += `<div class="msg-bubble msg-ai" style="color:red;">تعذر الاتصال. تحقق من الإنترنت.</div>`;
   }
   chatBox.scrollTop = chatBox.scrollHeight;
 }
-  document.addEventListener('DOMContentLoaded', () => {
-  const nav = document.querySelector('nav');
-  if (nav && !nav.querySelector('[data-page="aiChatPage"]')) {
-    const btn = document.createElement('button');
-    btn.className = 'nav-btn';
-    btn.setAttribute('data-page', 'aiChatPage');
-    btn.innerHTML = '<span>🤖</span>مساعد';
-    nav.appendChild(btn);
+
+document.addEventListener('DOMContentLoaded', () => {
+  // 1. إضافة الزر في الشريط العلوي (الهيدر)
+  const header = document.querySelector('header');
+  if (header && !document.getElementById('topAiBtn')) {
+    header.style.position = 'relative';
+    const topBtn = document.createElement('button');
+    topBtn.id = 'topAiBtn';
+    topBtn.innerHTML = '🤖';
+    topBtn.setAttribute('aria-label', 'المساعد الذكي');
+    topBtn.style.cssText = 'position:absolute; top:calc(14px + env(safe-area-inset-top,0px)); right:12px; background:rgba(255,255,255,.2); border:1px solid rgba(255,255,255,.4); color:#fff; font-size:20px; padding:6px 10px; border-radius:10px; cursor:pointer; z-index:20;';
     
-    btn.addEventListener('click', () => {
+    topBtn.addEventListener('click', () => {
+      if(typeof showPage === 'function') showPage('aiChatPage');
+    });
+    header.appendChild(topBtn);
+  }
+
+  // 2. إضافة الزر في الإجراءات السريعة (الصفحة الرئيسية)
+  const qGrid = document.querySelector('#home .grid');
+  if (qGrid && !document.querySelector('#home [data-page="aiChatPage"]')) {
+    const qBtn = document.createElement('button');
+    qBtn.className = 'btn2 nav-btn';
+    qBtn.setAttribute('data-page', 'aiChatPage');
+    qBtn.textContent = '🤖 مساعد ذكي';
+    qGrid.appendChild(qBtn);
+    
+    qBtn.addEventListener('click', () => {
       if(typeof showPage === 'function') showPage('aiChatPage');
     });
   }
 });
+</script>
 </script>
 </body>
 </html>
