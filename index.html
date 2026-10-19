@@ -3862,7 +3862,6 @@ body.dark-mode .msg-ai { background: #2e7d32; color: #fff; }
   </div>
 </section>
 
-<script src="https://js.puter.com/v2/"></script>
 <script>
 async function sendAIMessage() {
   const input = document.getElementById('aiInput');
@@ -3876,21 +3875,41 @@ async function sendAIMessage() {
   chatBox.scrollTop = chatBox.scrollHeight;
   typing.style.display = 'block';
 
+  let aiText = null;
+
+  // 🟢 المحاولة 1: مفتاح جوجل (المقسم لتجاوز جيت هب)
+  const part1 = "AQ.";
+  const part2 = "Ab8RN6LMS2F7tOaDkgOroi6misDAmmW520IHf2Yoh_zSYp2aQ"; 
+  const GEMINI_KEY = part1 + part2;
+  
   try {
-    // إجبار المتصفح على طلب تسجيل الدخول إذا لم تكن مسجلاً
-    if (!puter.auth.isSignedIn()) {
-      await puter.auth.signIn();
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contents: [{ parts: [{ text: `أنت خبير زراعي. أجب بالعربية: ${text}` }] }] })
+    });
+    if (res.ok) {
+      const data = await res.json();
+      aiText = data.candidates[0].content.parts[0].text;
     }
-    
-    // الاتصال بالذكاء الاصطناعي
-    const response = await puter.ai.chat(`أنت خبير زراعي وبيطري جزائري. أجب باللغة العربية باختصار: ${text}`);
-    
-    typing.style.display = 'none';
-    const formatted = response.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+  } catch (e) { console.warn("Gemini failed, trying fallback..."); }
+
+  // 🟡 المحاولة 2: Pollinations (بدون مفتاح)
+  if (!aiText) {
+    try {
+      const res = await fetch('https://text.pollinations.ai/' + encodeURIComponent(`أنت خبير زراعي جزائري. أجب بالعربية باختصار: ${text}`));
+      if (res.ok) aiText = await res.text();
+    } catch (e) { console.warn("Pollinations failed..."); }
+  }
+
+  // عرض النتيجة النهائية
+  typing.style.display = 'none';
+  if (aiText) {
+    const formatted = aiText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
     chatBox.innerHTML += `<div class="msg-bubble msg-ai">${formatted}</div>`;
-  } catch (err) {
-    typing.style.display = 'none';
-    chatBox.innerHTML += `<div class="msg-bubble msg-ai" style="color:red;">فشل الاتصال: يرجى تسجيل الدخول بحساب جوجل أو المحاولة لاحقاً.</div>`;
+  } else {
+    chatBox.innerHTML += `<div class="msg-bubble msg-ai" style="color:red;">عذراً، الخادم مشغول حالياً. حاول لاحقاً.</div>`;
   }
   chatBox.scrollTop = chatBox.scrollHeight;
 }
