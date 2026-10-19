@@ -1,12 +1,11 @@
-const CACHE='falahdz-v1';
+const CACHE='falahdz-v10';
 
 const CORE_ASSETS=[
   './',
   './index.html',
   './offline.html',
   './manifest.json',
-  './icons/icon-192.svg',
-  './icons/icon-512.svg'
+  './icons/icon-photo.png'
 ];
 
 self.addEventListener('install',event=>{
