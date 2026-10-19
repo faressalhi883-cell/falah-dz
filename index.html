@@ -3864,8 +3864,6 @@ body.dark-mode .msg-ai { background: #2e7d32; color: #fff; }
 
 <script src="https://js.puter.com/v2/"></script>
 <script>
-
-<script>
 async function sendAIMessage() {
   const input = document.getElementById('aiInput');
   const chatBox = document.getElementById('chatBox');
@@ -3878,46 +3876,21 @@ async function sendAIMessage() {
   chatBox.scrollTop = chatBox.scrollHeight;
   typing.style.display = 'block';
 
-  // 🪄 المفتاح مقسم لتجاوز حماية GitHub
-  const part1 = "gsk_";
-  const part2 = "Z86UTvB3Y9EwB1P0Lo8wWGdyb3FY6wnhd8OatKbFyWjyNKtjpmu9"؛
-  const GROQ_KEY = part1 + part2;
-
-  const url = "https://api.groq.com/openai/v1/chat/completions";
-  const proxy = "https://api.allorigins.win/raw?url=" + encodeURIComponent(url);
-
   try {
-    const response = await fetch(proxy, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${GROQ_KEY}`
-      },
-      body: JSON.stringify({
-        model: "llama-3.1-8b-instant",
-        messages: [
-          { role: "system", content: "أنت خبير زراعي. أجب بالعربية باختصار." },
-          { role: "user", content: text }
-        ]
-      })
-    });
-
-    if (!response.ok) {
-       const errText = await response.text();
-       throw new Error(`خطأ ${response.status}: ${errText}`);
+    // إجبار المتصفح على طلب تسجيل الدخول إذا لم تكن مسجلاً
+    if (!puter.auth.isSignedIn()) {
+      await puter.auth.signIn();
     }
     
-    const data = await response.json();
-    const aiText = data.choices[0].message.content;
-
+    // الاتصال بالذكاء الاصطناعي
+    const response = await puter.ai.chat(`أنت خبير زراعي وبيطري جزائري. أجب باللغة العربية باختصار: ${text}`);
+    
     typing.style.display = 'none';
-    const formatted = aiText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+    const formatted = response.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
     chatBox.innerHTML += `<div class="msg-bubble msg-ai">${formatted}</div>`;
-
   } catch (err) {
-    console.error(err);
     typing.style.display = 'none';
-    chatBox.innerHTML += `<div class="msg-bubble msg-ai" style="color:red;">فشل: ${err.message}</div>`;
+    chatBox.innerHTML += `<div class="msg-bubble msg-ai" style="color:red;">فشل الاتصال: يرجى تسجيل الدخول بحساب جوجل أو المحاولة لاحقاً.</div>`;
   }
   chatBox.scrollTop = chatBox.scrollHeight;
 }
