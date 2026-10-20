@@ -3937,59 +3937,41 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 </script>
-  <script>
+  
+<script>
   (function() {
     var ua = navigator.userAgent || navigator.vendor || window.opera;
     
-    // كشف فيسبوك وماسنجر وجوإنستاغرام أيضاً احتياطياً
+    // كشف متصفح فيسبوك أو إنستغرام الداخلي
     if (/FBAN|FBAV|Messenger|Instagram/i.test(ua)) {
       
-      // التأكد من تحميل الصفحة بالكامل قبل حقن العناصر
       document.addEventListener("DOMContentLoaded", function() {
-        showRedirectScreen();
+        showBrowserWarning();
       });
       
-      // إذا كانت الصفحة محملة مسبقاً
       if (document.readyState === "complete" || document.readyState === "interactive") {
-        showRedirectScreen();
+        showBrowserWarning();
       }
     }
 
-    function showRedirectScreen() {
-      // منع تكرار إنشاء الشاشة إذا تم تنفيذ الكود أكثر من مرة
-      if (document.getElementById('fb-redirect-screen')) return;
+    function showBrowserWarning() {
+      if (document.getElementById('fb-warning-screen')) return;
 
-      var currentUrl = window.location.href;
-      var ua = navigator.userAgent;
-      var isAndroid = /Android/i.test(ua);
-      
       var fbScreen = document.createElement('div');
-      fbScreen.id = 'fb-redirect-screen';
+      fbScreen.id = 'fb-warning-screen';
       fbScreen.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:#1b5e20; color:white; z-index:999999; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:20px; font-family:sans-serif; box-sizing: border-box;';
       
-      var buttonHtml = '';
-      
-      if (isAndroid) {
-        // طريقة أكثر أماناً لتكوين الـ Intent لفتح متصفح كروم
-        var cleanUrl = currentUrl.replace(/^https?:\/\//, '');
-        var intentUrl = "intent://" + cleanUrl + "#Intent;scheme=https;package=com.android.chrome;end;";
-        
-        buttonHtml = `<a href="${intentUrl}" style="background:#ff9800; color:white; text-decoration:none; padding:15px 30px; border-radius:10px; font-weight:bold; font-size:18px; display:inline-block; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">فتح في متصفح كروم</a>`;
-      } else {
-        buttonHtml = `
-          <div style="background:#ff9800; color:white; padding:15px 20px; border-radius:10px; font-weight:bold; font-size:16px; display:inline-block; line-height: 1.6;">
-            اضغط على النقاط الثلاث (...) أو أيقونة المشاركة بالأعلى<br>واختر "Open in Browser" أو "فتح في Safari"
-          </div>`;
-      }
-
       fbScreen.innerHTML = `
         <div style="font-size:50px; margin-bottom:20px;">🌾</div>
-        <h2 style="margin:0 0 10px; font-size:22px;">لتشغيل التطبيق بشكل صحيح</h2>
-        <p style="font-size:15px; margin-bottom:20px; opacity: 0.9;">متصفح فيسبوك الداخلي لا يدعم بعض ميزات التطبيق. يرجى فتحه في متصفح خارجي.</p>
-        ${buttonHtml}
+        <h2 style="margin:0 0 10px; font-size:22px;">عذراً، متصفح فيسبوك غير مدعوم</h2>
+        <p style="font-size:15px; margin-bottom:25px; opacity: 0.9; max-width: 400px; line-height: 1.5;">
+          يرجى فتح التطبيق في المتصفح الخارجي (مثل جوجل كروم أو سفاري) ليعمل معك بشكل سليم بدون أخطاء.
+        </p>
+        <div style="background:#ff9800; color:white; padding:15px 25px; border-radius:10px; font-weight:bold; font-size:16px; line-height: 1.6; box-shadow: 0 4px 6px rgba(0,0,0,0.2);">
+          👇 اضغط على <b>النقاط الثلاث (...)</b> في الزاوية بالأعلى<br>ثم اختر <b>"فتح في المتصفح"</b> أو <b>"Open in Browser"</b>
+        </div>
       `;
       
-      // إضافته بأمان للصفحة
       if (document.body) {
         document.body.appendChild(fbScreen);
       } else {
@@ -3998,6 +3980,5 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   })();
 </script>
-
 </body>
 </html>
