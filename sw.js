@@ -1,4 +1,4 @@
-const CACHE='falahdz-v10';
+const CACHE='falahdz-v11';
 
 const CORE_ASSETS=[
   './',
