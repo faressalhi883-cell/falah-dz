@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "dev.fluxcast.falah_dz.twa",
+        "sha256_cert_fingerprints": ["FB:93:3E:5D:2C:9D:70:BA:9E:23:41:44:64:2E:2D:D0:16:24:5B:0E:26:49:CA:17:06:63:D8:34:0C:12:E4:57"]
+      }
+    }]
