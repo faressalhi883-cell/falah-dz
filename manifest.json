@@ -1,0 +1,37 @@
+{
+  "id": "/",
+  "name": "فلاح DZ",
+  "short_name": "فلاح DZ",
+  "description": "إدارة المزرعة، الطقس، الصلاة، والمحاصيل",
+  "start_url": "/index.html",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
+  "orientation": "portrait",
+  "background_color": "#f2f5f0",
+  "theme_color": "#1b5e20",
+  "lang": "ar",
+  "dir": "rtl",
+  "prefer_related_applications": false,
+  "categories": [
+    "productivity",
+    "utilities"
+  ],
+  "icons": [
+    {
+      "src": "icons/icon-photo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-photo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
